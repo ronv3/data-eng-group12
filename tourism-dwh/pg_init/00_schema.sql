@@ -1,6 +1,6 @@
 -- Create dedicated schema & set search path
-CREATE SCHEMA IF NOT EXISTS tourism_dw;
-SET search_path TO tourism_dw;
+CREATE SCHEMA IF NOT EXISTS tourism_dwh;
+SET search_path TO tourism_dwh;
 
 -- =========================
 -- Dimensions (SCD2 where noted)

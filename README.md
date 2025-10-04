@@ -28,10 +28,7 @@ Goal: identify which locations and accommodation characteristics are most attrac
   - `dim_calendar_quarter`
 
 ## How to use
-1. Create a Postgres DB (or use any SQL DB and adapt types).
-2. Run `schema.sql`.
-3. (Optional) Add a few rows in `sample_inserts.sql`.
-4. Run `demo_queries.sql` to replicate the analytics from the Report.
+* Follow README.md instructions inside tourism.dwh
 
 ## Assumptions / Guardrails
 - Some properties lack `registry_code` → capacity-only, won’t join to EMTA.
