@@ -20,7 +20,7 @@ PGADMIN_DEFAULT_PASSWORD=root
 
 
 ## 3) Start
-From repo root:
+From project root (tourism-dwh):
 ```bash
 docker compose up -d
 ```
@@ -30,6 +30,9 @@ docker compose up -d
  (login with .env creds)
 
 >The first run initializes the database and executes all pg_init/*.sql files.
+>> In case first run does not execute pg_init files (create_schema, sample_inserts), try:   
+>> ```docker exec -it db bash -c "psql -f /pg_init/create_schema.sql"```    
+>> ```docker exec -it db bash -c "psql -f /pg_init/sample_inserts.sql"```
 
 ## 4) Connect pgAdmin to the database (first time run)
 
