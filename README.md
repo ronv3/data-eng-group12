@@ -13,8 +13,7 @@ Goal: identify which locations and accommodation characteristics are most attrac
 
 ## Files
 - `schema.sql` — DDL for all dims/facts (Postgres-flavored; should also work with minor tweaks in other RDBMS).
-- `demo_queries.sql` *(optional, add later)* — SELECTs that answer the business questions in the brief.
-- `sample_inserts.sql` *(optional)* — a handful of rows to illustrate table shapes.
+- `sample_inserts.sql` — a handful of rows to illustrate table shapes.
 
 ## Star Schema (tables)
 - **Facts**
