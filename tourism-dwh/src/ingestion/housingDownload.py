@@ -6,6 +6,10 @@ from urllib.parse import urlparse
 import re
 from typing import Union
 
+from housingDataFixes import fix_nan_values_for_numbers as num_fix_nan
+from housingDataFixes import fix_nan_value_for_season as season_fix_nan
+from housingDataFixes import fix_opening_times as opening_fix_nan
+
 def download_file(url: str, chunk_size: int = 1024 * 32) -> Union[io.BytesIO, None]:
     """Download a file (Excel/CSV/ZIP/etc.) from the given URL into memory."""
     print(f"Downloading from {url}")
@@ -40,6 +44,20 @@ def parse_file(file_bytes: io.BytesIO) -> pd.DataFrame:
         df = pd.read_csv(file_bytes)
         return df
 
+def fix_values(df):
+    numeric_columns = [
+    'Voodikohad',
+    'Tubade arv kokku',
+    'Voodikohtade arv kõrghooajal',
+    'Voodikohtade arv madalhooajal',
+    'Haagissuvila kohtade arv',
+    'Telkimiskohtade arv'
+    ]
+    df = num_fix_nan(df, numeric_columns)
+    df = season_fix_nan(df, 'Hooaja periood')
+    df = opening_fix_nan(df)
+    return df
+
 def download_files(base_url: str) -> pd.DataFrame | None:
     """
     Entry-level logic to download one or more datasets.
@@ -49,6 +67,7 @@ def download_files(base_url: str) -> pd.DataFrame | None:
     file_bytes = download_file(base_url)
     if file_bytes:
         df = parse_file(file_bytes)
+        df = fix_values(df)
         return df
     else:
         return None
