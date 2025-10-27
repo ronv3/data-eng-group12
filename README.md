@@ -40,4 +40,4 @@ Open data from EMTA and VisitEstonia/National Tourism IS. This repo contains onl
 ## running docker
 docker-compose --env-file ../.env up -d
 there is environment file in the parent directory that contains POSTGRES_USER and POSTGRES_PASSWORD variables
-
+to connect to the database.
