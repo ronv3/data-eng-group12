@@ -52,7 +52,7 @@ services:
       PGPASSWORD: ${AIRFLOW_PASSWORD}
       PGDATABASE: ${AIRFLOW_DB}
     ports:
-      - "5432:5432"
+      - "5442:5442"
     volumes:
       - ./pgdata_airflow:/var/lib/postgresql/data
     healthcheck:

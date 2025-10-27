@@ -37,3 +37,7 @@ Goal: identify which locations and accommodation characteristics are most attrac
 ## Licensing / Sources
 Open data from EMTA and VisitEstonia/National Tourism IS. This repo contains only schema and example SQL, no redistributed datasets.
 
+## running docker
+docker-compose --env-file ../.env up -d
+there is environment file in the parent directory that contains POSTGRES_USER and POSTGRES_PASSWORD variables
+
