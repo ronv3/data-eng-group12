@@ -14,6 +14,8 @@ services:
     volumes:
       - ./pgdata:/var/lib/postgresql/data
       - ./pg_init:/docker-entrypoint-initdb.d
+    env_file:
+      - ../.env
 
   pgadmin:
     container_name: pgadmin-tourism
@@ -23,8 +25,9 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"    # open http://localhost:5050
+    env_file:
+      - ../.env
 
-  #pyton
   python-app:
     build:
       context: .
@@ -35,3 +38,27 @@ services:
       - PYTHONUNBUFFERED=1
     depends_on:
       - db
+    env_file:
+      - ../.env
+
+  airflow-db:
+    container_name: airflow-db
+    image: postgres:16.4
+    environment:
+      POSTGRES_USER: ${AIRFLOW_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_PASSWORD}
+      POSTGRES_DB: ${AIRFLOW_DB}
+      PGUSER: ${AIRFLOW_USER}
+      PGPASSWORD: ${AIRFLOW_PASSWORD}
+      PGDATABASE: ${AIRFLOW_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata_airflow:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${AIRFLOW_USER}" ]
+      interval: 10s
+      retries: 5
+    restart: always
+    env_file:
+      - ../.env
