@@ -3,7 +3,9 @@ from housingDownload import download_files as download_housing_files
 from taxDownload import download_files as download_tax_files
 
 ### vars ###
-housing_url = 'https://s3.pilw.io/rvs-ria-atv-prod/datasets/701fb53b-73ee-4c67-b438-e5fed9e5429a-Turismiinfosysteem_Majutus.xlsx'
+## using google docks link to avoid scraping issues with legality of it on the site
+## downloading manually and using it is OK. will figure out permanent solution
+housing_url = 'https://docs.google.com/spreadsheets/d/1m5zfF6zGz8itskGpKsNU3sFNvCPdLRTK/export?format=xlsx'
 tax_url = "https://www.emta.ee/en/business-client/board-news-and-contact/news-press-information-statistics/statistics-and-open-data"
 
 
