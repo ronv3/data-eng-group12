@@ -6,10 +6,12 @@ from taxDownload import download_files as download_tax_files
 housing_url = 'https://andmed.eesti.ee/api/datasets/f3324f95-e672-4041-804f-edf8b7083c43/files/701fb53b-73ee-4c67-b438-e5fed9e5429a/download-s3'
 tax_url = "https://www.emta.ee/en/business-client/board-news-and-contact/news-press-information-statistics/statistics-and-open-data"
 
-data_folder = 'tourism-dwh/data/'
 
 def main():
-    data_folder = 'tourism-dwh/data'
+    # Ensure the data folder exists
+    data_folder = 'data'
+    os.makedirs(data_folder, exist_ok=True)
+
     # Housing data download
     print("Starting housing data download...")
     housing_df = download_housing_files(housing_url)
