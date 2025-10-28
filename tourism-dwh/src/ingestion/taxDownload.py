@@ -7,6 +7,8 @@ def download_file(url: str) -> pd.DataFrame:
     print(f"Downloading data from {url}")
     resp = requests.get(url)
     resp.raise_for_status()
+    data = io.BytesIO(resp.content)
+    print(f"Download complete, {len(data.getvalue())/1024:.1f} KB")
     df = pd.read_csv(io.StringIO(resp.text))
     return df
 
