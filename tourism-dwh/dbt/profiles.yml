@@ -1,0 +1,14 @@
+tourism_clickhouse:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      host: ${CLICKHOUSE_HOST}
+      port: 8123
+      user: ${CLICKHOUSE_USER}
+      password: ${CLICKHOUSE_PASSWORD}
+      secure: False
+      # dbt-clickhouse uses schema as CH database
+      schema: default
+      database: default
+      threads: 4

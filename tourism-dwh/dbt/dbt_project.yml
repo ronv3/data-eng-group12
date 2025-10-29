@@ -1,0 +1,13 @@
+name: "tourism_dwh"
+version: "1.0.0"
+config-version: 2
+
+profile: "tourism_clickhouse"
+
+models:
+  tourism_dwh:
+    +materialized: table
+    silver:
+      +schema: silver
+    gold:
+      +schema: gold
