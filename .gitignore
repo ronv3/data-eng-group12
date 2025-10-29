@@ -1,4 +1,4 @@
-.env
+tourism-dwh/.env
 pgdata
 .idea
 logs

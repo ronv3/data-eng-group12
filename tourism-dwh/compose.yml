@@ -15,7 +15,7 @@ services:
       - ./pgdata:/var/lib/postgresql/data
       - ./pg_init:/docker-entrypoint-initdb.d
     env_file:
-      - ../.env
+      - .env
 
   pgadmin:
     container_name: pgadmin-tourism
@@ -26,7 +26,7 @@ services:
     ports:
       - "5050:80"    # open http://localhost:5050
     env_file:
-      - ../.env
+      - .env
 
   python-app:
     build:
@@ -39,37 +39,35 @@ services:
     depends_on:
       - db
     env_file:
-      - ../.env
+      - .env
 
-  airflow-db:
-    container_name: airflow-db
+  airflow-db-tourism:
+    container_name: airflow-db-tourism
     image: postgres:16.4
     environment:
-      POSTGRES_USER: ${AIRFLOW_USER}
-      POSTGRES_PASSWORD: ${AIRFLOW_PASSWORD}
-      POSTGRES_DB: ${AIRFLOW_DB}
-      PGUSER: ${AIRFLOW_USER}
-      PGPASSWORD: ${AIRFLOW_PASSWORD}
-      PGDATABASE: ${AIRFLOW_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
     ports:
       - "5442:5442"
     volumes:
       - ./pgdata_airflow:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${AIRFLOW_USER}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
       retries: 5
     restart: always
-    env_file:
-      - ../.env
 
-  airflow-webserver:
+  airflow-webserver-tourism:
     image: apache/airflow:2.8.1
-    container_name: airflow-webserver
+    container_name: airflow-webserver-tourism
     command: webserver
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_USER}:${AIRFLOW_PASSWORD}@airflow-db:5442/${AIRFLOW_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@airflow-db-tourism:5442/${POSTGRES_DB}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
     ports:
@@ -79,52 +77,52 @@ services:
       - ./logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
     depends_on:
-      - airflow-init
-      - airflow-db
+      - airflow-init-tourism
+      - airflow-db-tourism
     restart: always
     env_file:
-      - ../.env
+      - .env
 
-  airflow-scheduler:
+  airflow-scheduler-tourism:
     image: apache/airflow:2.8.1
-    container_name: airflow-scheduler
+    container_name: airflow-scheduler-tourism
     command: scheduler
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_USER}:${AIRFLOW_PASSWORD}@airflow-db:5442/${AIRFLOW_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@airflow-db-tourism:5442/${POSTGRES_DB}
       AIRFLOW_CONN_DB: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
     depends_on:
-      - airflow-init
-      - airflow-db
+      - airflow-init-tourism
+      - airflow-db-tourism
     restart: always
     env_file:
-      - ../.env
+      - .env
 
-  airflow-init:
+  airflow-init-tourism:
     image: apache/airflow:2.8.1
-    container_name: airflow-init
+    container_name: airflow-init-tourism
     entrypoint: /bin/bash
     command:
       - -c
       - |
         airflow db init
         airflow users create \
-          --username ${AIRFLOW_USER} \
-          --password ${AIRFLOW_PASSWORD} \
+          --username ${POSTGRES_USER} \
+          --password ${POSTGRES_PASSWORD} \
           --firstname Admin \
           --lastname User \
           --role Admin \
           --email admin@example.com
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_USER}:${AIRFLOW_PASSWORD}@airflow-db:5442/${AIRFLOW_DB}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@airflow-db-tourism:5442/${POSTGRES_DB}
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
     depends_on:
-      - airflow-db
+      - airflow-db-tourism
     restart: "no"
