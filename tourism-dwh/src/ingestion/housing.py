@@ -27,13 +27,23 @@ def _download_stream(url: str, chunk_size: int = 1 << 15) -> Optional[io.BytesIO
     return buf
 
 def _parse_excel_or_csv(buff: io.BytesIO) -> pd.DataFrame:
-    try:
-        dfs = pd.read_excel(buff, sheet_name=None)
-        first = list(dfs.keys())[0]
+    # Peek signature to decide parser
+    sig = buff.read(4)
+    buff.seek(0)
+
+    # XLSX files are ZIPs -> start with PK\x03\x04
+    if sig.startswith(b'PK\x03\x04'):
+        dfs = pd.read_excel(buff, sheet_name=None, engine="openpyxl")
+        first = next(iter(dfs))
         return dfs[first]
-    except Exception:
-        buff.seek(0)
+
+    # Otherwise assume CSV; try utf-8 then a permissive fallback
+    try:
         return pd.read_csv(buff)
+    except UnicodeDecodeError:
+        buff.seek(0)
+        return pd.read_csv(buff, encoding="latin-1")
+
 
 def fetch_and_clean(housing_url: str) -> pd.DataFrame:
     buff = _download_stream(housing_url)
@@ -45,13 +55,15 @@ def fetch_and_clean(housing_url: str) -> pd.DataFrame:
     # opening/seasonal columns can be left as-is or normalized in Silver
     return df
 
-def load_month(period_date: date, housing_url: str, source_file: str = "housing_download"):
+def load_month(period_date: date, housing_url: str, source_file: str = "housing_download") -> int:
     """
     Idempotent monthly load:
       - delete target month
       - insert rows with hashes
+      - return inserted rowcount
     """
     df = fetch_and_clean(housing_url)
+
     # DQ in-batch: drop exact dup rows
     before = len(df)
     df = df.drop_duplicates()
@@ -59,6 +71,12 @@ def load_month(period_date: date, housing_url: str, source_file: str = "housing_
     if dropped:
         print(f"DQ: dropped {dropped} duplicate rows (batch-level).")
 
+    # write to ClickHouse
     replace_partition_housing(period_date)
-    insert_housing_rows(period_date, source_url=housing_url, source_file=source_file, raw_json_rows=to_json_rows(df))
+    insert_housing_rows(
+        period_date,
+        source_url=housing_url,
+        source_file=source_file,
+        raw_json_rows=to_json_rows(df),
+    )
     return len(df)

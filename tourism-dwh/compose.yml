@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   airflow-db:
     image: postgres:16.4
@@ -30,10 +28,11 @@ services:
     volumes:
       - clickhouse_data:/var/lib/clickhouse   # <— use named volume (not ./ckdata)
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping | grep -q Pong"]
+      test: [ "CMD-SHELL", "clickhouse-client --host 127.0.0.1 --query 'SELECT 1' >/dev/null 2>&1" ]
       interval: 10s
+      timeout: 5s
       retries: 10
-    restart: always
+      start_period: 20s
 
   airflow-init:
     build:
@@ -44,20 +43,22 @@ services:
     entrypoint: /bin/bash
     command:
       - -lc
-      - >
-        set -e;
-        airflow db migrate &&
-        airflow users create
-          --username "${AIRFLOW_USER:-admin}"
-          --password "${AIRFLOW_PASSWORD:-admin}"
-          --firstname "Admin"
-          --lastname "User"
-          --role "Admin"
-          --email "${AIRFLOW_EMAIL:-admin@example.com}"
-        || true
+      - |
+        set -euo pipefail
+        airflow db migrate
+        airflow users create \
+          --username "${AIRFLOW_USER:-admin}" \
+          --password "${AIRFLOW_PASSWORD:-admin}" \
+          --firstname "${AIRFLOW_FIRSTNAME:-Admin}" \
+          --lastname "${AIRFLOW_LASTNAME:-User}" \
+          --role Admin \
+          --email "${AIRFLOW_EMAIL:-admin@example.com}" || true
     environment:
+      PYTHONPATH: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
+      # prevent DAG parsing during init (avoids src import noise)
+      AIRFLOW__CORE__DAGS_FOLDER: /dev/null
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/include:/opt/airflow/include
@@ -65,9 +66,10 @@ services:
       - ./src:/opt/airflow/src
       - ./dbt:/opt/airflow/dbt
     depends_on:
-      - airflow-db
-      - clickhouse
+      airflow-db:
+        condition: service_healthy
     restart: "no"
+
 
   airflow-scheduler:
     build:
@@ -77,8 +79,10 @@ services:
     container_name: airflow-scheduler-tourism
     command: scheduler
     environment:
+      PYTHONPATH: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
@@ -96,10 +100,12 @@ services:
       - ./dbt:/opt/airflow/dbt
       - ./logs:/opt/airflow/logs
     depends_on:
-      - airflow-db
-      - clickhouse
-      - airflow-init
+      airflow-db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     restart: always
+
 
   airflow-webserver:
     build:
@@ -111,9 +117,10 @@ services:
     ports:
       - "8080:8080"
     environment:
+      PYTHONPATH: /opt/airflow
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
@@ -131,10 +138,14 @@ services:
       - ./dbt:/opt/airflow/dbt
       - ./logs:/opt/airflow/logs
     depends_on:
-      - airflow-db
-      - clickhouse
-      - airflow-init
+      airflow-db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
     restart: always
+
+
+
 
 volumes:
   clickhouse_data: {}

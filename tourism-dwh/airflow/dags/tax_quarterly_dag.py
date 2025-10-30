@@ -1,15 +1,14 @@
 from __future__ import annotations
-import pendulum
+import pendulum, time
 from datetime import date
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowFailException
 from src.ingestion.tax import load_quarter
 from src.ingestion.common import compute_quarter_start, ch_client
 from airflow import Dataset
+
 BRONZE_HOUSING_DS = Dataset("clickhouse://bronze/housing_raw")
 BRONZE_TAX_DS     = Dataset("clickhouse://bronze/tax_raw")
-
-
 
 TAX_BASE_URL = "https://www.emta.ee/en/business-client/board-news-and-contact/news-press-information-statistics/statistics-and-open-data"
 
@@ -23,6 +22,18 @@ TAX_BASE_URL = "https://www.emta.ee/en/business-client/board-news-and-contact/ne
     tags=["bronze","tax"]
 )
 def tax_quarterly():
+    @task
+    def wait_for_clickhouse():
+        last = None
+        for _ in range(30):
+            try:
+                ch_client("default").command("SELECT 1")
+                return
+            except Exception as e:
+                last = e
+                time.sleep(3)
+        raise AirflowFailException(f"ClickHouse not reachable: {last}")
+
     @task
     def ensure_clickhouse_objects():
         client = ch_client("default")
@@ -75,9 +86,10 @@ def tax_quarterly():
         if dup > 0:
             raise AirflowFailException(f"Tax DQ failed: found {dup} duplicate hashes for {period_quarter}")
 
+    ready = wait_for_clickhouse()
     ddl = ensure_clickhouse_objects()
     rows = extract_and_load(execution_date_str="{{ ds }}", which="latest")
     dq   = dq_bronze(execution_date_str="{{ ds }}", inserted=rows)
-    ddl >> rows >> dq
+    ready >> ddl >> rows >> dq
 
 tax_quarterly()
