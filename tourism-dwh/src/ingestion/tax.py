@@ -39,6 +39,7 @@ def load_quarter(period_quarter: date, base_url: str, which: str = "latest", sou
     Idempotent quarterly load.
     """
     df = fetch(which, base_url)
+    df = df.where(pd.notna(df), None)
     # DQ in-batch
     before = len(df)
     df = df.drop_duplicates()

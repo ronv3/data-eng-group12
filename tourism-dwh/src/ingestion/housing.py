@@ -50,10 +50,11 @@ def fetch_and_clean(housing_url: str) -> pd.DataFrame:
     if buff is None:
         raise RuntimeError("Failed to download housing file")
     df = _parse_excel_or_csv(buff)
-    # basic fixes
     df = ensure_non_negative(df, NUMERIC_COLS)
-    # opening/seasonal columns can be left as-is or normalized in Silver
+    # strict JSON: ensure no NaN/NaT; pandas will dump None as JSON null
+    df = df.where(pd.notna(df), None)
     return df
+
 
 def load_month(period_date: date, housing_url: str, source_file: str = "housing_download") -> int:
     """

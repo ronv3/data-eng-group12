@@ -1,37 +1,35 @@
-{{ config(materialized='table') }}
+{{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_SILVER','silver')) }}
 
-WITH base AS (
+WITH src AS (
+  SELECT replaceAll(raw_json, 'NaN', 'null') AS raw_json_sane
+  FROM {{ source('bronze','housing_raw') }}
+),
+base AS (
   SELECT
-    -- same robust registry-code normalization
     nullIf(
       replaceRegexpAll(
-        replaceRegexpAll(JSONExtractRaw(raw_json, 'Ettevõtte registrikood'), '^"|"$', ''),
-        '\\.0$', ''
+        replaceRegexpAll(JSONExtractRaw(raw_json_sane,'Ettevõtte registrikood'), '^"|"$',''),
+        '\\.0$',''
       ),
       ''
     ) AS property_bk,
-    coalesce(JSONExtractString(raw_json, 'Omadused ja üldine varustus'), '') AS features_general,
-    coalesce(JSONExtractString(raw_json, 'Teemaviited'), '')                  AS features_tags
-  FROM {{ source('bronze','housing_raw') }}
-),
-split AS (
-  SELECT
-    property_bk,
-    arrayFilter(x -> x != '',
-      arrayMap(x -> trim(BOTH ' ' FROM x),
-        arrayConcat(
-          splitByChar(',', features_general),
-          splitByChar(',', features_tags)
-        )
-      )
-    ) AS feature_arr
-  FROM base
-  WHERE property_bk IS NOT NULL
+    nullIf(JSONExtractString(raw_json_sane,'Turismiobjekti nimi'),'') AS accommodation_name,
+    replaceRegexpAll(coalesce(JSONExtractString(raw_json_sane,'Omadused ja üldine varustus'),''),'[;\\n\\r]+',',') AS fgen,
+    replaceRegexpAll(coalesce(JSONExtractString(raw_json_sane,'Teemaviited'),''),'[;\\n\\r]+',',')                 AS ftags
+  FROM src
 )
 SELECT
   property_bk,
-  feature AS feature_name
-FROM split
-ARRAY JOIN feature_arr AS feature
-GROUP BY property_bk, feature
-ORDER BY property_bk, feature;
+  accommodation_name,
+  feature_name
+FROM (
+  SELECT property_bk, accommodation_name, trim(BOTH ' ' FROM arrayJoin(splitByChar(',', fgen)))  AS feature_name
+  FROM base WHERE property_bk IS NOT NULL AND accommodation_name IS NOT NULL
+
+  UNION ALL
+
+  SELECT property_bk, accommodation_name, trim(BOTH ' ' FROM arrayJoin(splitByChar(',', ftags))) AS feature_name
+  FROM base WHERE property_bk IS NOT NULL AND accommodation_name IS NOT NULL
+)
+WHERE feature_name <> ''
+GROUP BY property_bk, accommodation_name, feature_name

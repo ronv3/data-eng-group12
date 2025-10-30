@@ -1,9 +1,7 @@
 {{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_SILVER', 'silver')) }}
 
 WITH src AS (
-    SELECT
-        raw_json,
-        ingested_at
+    SELECT raw_json, ingested_at
     FROM {{ source('bronze','tax_raw') }}
 ),
 base AS (
@@ -71,8 +69,8 @@ SELECT
     registry_code,
     company_name,
     activity,
-    trim(BOTH ' ' FROM arrayElement(splitByChar('(', county_raw), 1))                         AS county,
-    nullIf(replaceAll(trim(BOTH ' ' FROM arrayElement(splitByChar('(', county_raw), 2)),')',''),'') AS municipality,
+    trim(arrayElement(splitByChar('(', county_raw), 1))                         AS county,
+    nullIf(replaceAll(trim(arrayElement(splitByChar('(', county_raw), 2)),')',''),'') AS municipality,
     year_val                                                                                   AS year,
     idx                                                                                        AS quarter_num,
     toDate(addMonths(toDate(concat(toString(year_val),'-01-01')), (idx - 1) * 3))             AS quarter_start,

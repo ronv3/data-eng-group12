@@ -8,4 +8,4 @@ WITH base AS (
 SELECT
   xxHash64(lowerUTF8(feature_name)) AS feature_sk,
   feature_name
-FROM base;
+FROM base

@@ -7,7 +7,6 @@
     invalidate_hard_deletes=true
 ) }}
 
--- silver.stg_company_latest must provide these columns
 select
   registry_code,
   name,

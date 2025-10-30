@@ -2,7 +2,6 @@ version: 2
 
 sources:
   - name: bronze
-    +schema: bronze
     database: "{{ env_var('CLICKHOUSE_DB_BRONZE', 'bronze') }}"
     tables:
       - name: housing_raw
