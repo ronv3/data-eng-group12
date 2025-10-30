@@ -4,9 +4,20 @@ USER root
 RUN apt-get update && apt-get install -y build-essential gcc wget && rm -rf /var/lib/apt/lists/*
 
 USER airflow
+# Your app deps
 COPY py_requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt \
-    && pip install --no-cache-dir clickhouse-connect==0.7.* dbt-core==1.7.* dbt-clickhouse==1.7.*
+RUN pip install --no-cache-dir -r /requirements.txt
 
+# ---- dbt + clickhouse adapter + compression lib ----
+RUN pip install --no-cache-dir \
+      dbt-core==1.7.* \
+      dbt-clickhouse==1.7.* \
+      clickhouse-connect==0.7.* \
+      lz4==4.*          # helps with CH compression via clickhouse-connect
+
+# Make user-local pip scripts (dbt) visible to all shells
+ENV PATH="/home/airflow/.local/bin:${PATH}"
+
+# Useful defaults
 ENV PYTHONPATH="/opt/airflow:${PYTHONPATH}"
 ENV DBT_PROFILES_DIR=/opt/airflow/dbt

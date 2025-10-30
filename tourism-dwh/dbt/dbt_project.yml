@@ -4,6 +4,9 @@ config-version: 2
 
 profile: "tourism_clickhouse"
 
+model-paths: ['models']
+snapshot-paths: ['snapshots']
+
 models:
   tourism_dwh:
     +materialized: table
@@ -11,3 +14,5 @@ models:
       +schema: silver
     gold:
       +schema: gold
+snapshots:
+  +target_schema: gold

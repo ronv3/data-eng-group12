@@ -1,5 +1,6 @@
+version: "3.8"
+
 services:
-  # Airflow metadata DB (kept as Postgres)
   airflow-db:
     image: postgres:16.4
     container_name: airflow-db-tourism
@@ -15,7 +16,6 @@ services:
       - ./pgdata_airflow:/var/lib/postgresql/data
     restart: always
 
-  # ClickHouse (analytical store)
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
     container_name: clickhouse
@@ -25,10 +25,10 @@ services:
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
       - TZ=${TZ:-UTC}
     ports:
-      - "8123:8123"  # HTTP
-      - "9000:9000"  # Native
+      - "8123:8123"
+      - "9000:9000"
     volumes:
-      - ./ckdata:/var/lib/clickhouse
+      - clickhouse_data:/var/lib/clickhouse   # <— use named volume (not ./ckdata)
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping | grep -q Pong"]
       interval: 10s
@@ -58,8 +58,6 @@ services:
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
-      # Optional but recommended to silence crypto warning:
-      # AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/include:/opt/airflow/include
@@ -90,7 +88,6 @@ services:
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold
       DBT_PROFILES_DIR: /opt/airflow/dbt
-      # AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/include:/opt/airflow/include
@@ -126,7 +123,6 @@ services:
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold
       DBT_PROFILES_DIR: /opt/airflow/dbt
-      # AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/include:/opt/airflow/include
@@ -139,3 +135,6 @@ services:
       - clickhouse
       - airflow-init
     restart: always
+
+volumes:
+  clickhouse_data: {}

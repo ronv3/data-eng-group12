@@ -15,7 +15,7 @@ def ch_client(database: Optional[str] = None):
         port=CH_PORT,
         username=CH_USER,
         password=CH_PASSWORD,
-        database=database or DB_BRONZE,
+        database=database or "default",
         secure=False
     )
 

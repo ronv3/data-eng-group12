@@ -1058,3 +1058,42 @@ TypeError: airflow.decorators.python._PythonDecoratedOperator() got multiple val
 [2025-10-29T23:44:24.918+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:44:24.918+0000] {dag.py:3036} INFO - Sync 1 DAGs
 [2025-10-29T23:44:24.952+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:44:24.951+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2025-10-01 03:00:00+00:00, run_after=2026-01-01 03:00:00+00:00
 [2025-10-29T23:44:24.985+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 0.659 seconds
+[2025-10-29T23:57:31.615+0000] {processor.py:161} INFO - Started process (PID=171) to work on /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:57:31.616+0000] {processor.py:830} INFO - Processing file /opt/airflow/dags/tax_quarterly_dag.py for tasks to queue
+[2025-10-29T23:57:31.619+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:31.618+0000] {dagbag.py:538} INFO - Filling up the DagBag from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:57:32.861+0000] {processor.py:840} INFO - DAG(s) 'tax_quarterly' retrieved from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:57:33.479+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.478+0000] {override.py:1769} INFO - Created Permission View: can read on DAG:tax_quarterly
+[2025-10-29T23:57:33.512+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.511+0000] {override.py:1769} INFO - Created Permission View: can delete on DAG:tax_quarterly
+[2025-10-29T23:57:33.541+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.540+0000] {override.py:1769} INFO - Created Permission View: can edit on DAG:tax_quarterly
+[2025-10-29T23:57:33.542+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.542+0000] {dag.py:3036} INFO - Sync 1 DAGs
+[2025-10-29T23:57:33.586+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.585+0000] {dag.py:3058} INFO - Creating ORM DAG for tax_quarterly
+[2025-10-29T23:57:33.622+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:57:33.621+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2024-01-01 03:00:00+00:00, run_after=2024-04-01 03:00:00+00:00
+[2025-10-29T23:57:33.685+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 2.076 seconds
+[2025-10-29T23:58:04.020+0000] {processor.py:161} INFO - Started process (PID=183) to work on /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:04.025+0000] {processor.py:830} INFO - Processing file /opt/airflow/dags/tax_quarterly_dag.py for tasks to queue
+[2025-10-29T23:58:04.027+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:04.026+0000] {dagbag.py:538} INFO - Filling up the DagBag from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:05.047+0000] {processor.py:840} INFO - DAG(s) 'tax_quarterly' retrieved from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:05.151+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:05.151+0000] {dag.py:3036} INFO - Sync 1 DAGs
+[2025-10-29T23:58:05.466+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:05.466+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2024-01-01 03:00:00+00:00, run_after=2024-04-01 03:00:00+00:00
+[2025-10-29T23:58:05.515+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 1.505 seconds
+[2025-10-29T23:58:35.781+0000] {processor.py:161} INFO - Started process (PID=196) to work on /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:35.783+0000] {processor.py:830} INFO - Processing file /opt/airflow/dags/tax_quarterly_dag.py for tasks to queue
+[2025-10-29T23:58:35.788+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:35.788+0000] {dagbag.py:538} INFO - Filling up the DagBag from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:36.540+0000] {processor.py:840} INFO - DAG(s) 'tax_quarterly' retrieved from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:58:36.579+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:36.579+0000] {dag.py:3036} INFO - Sync 1 DAGs
+[2025-10-29T23:58:36.622+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:58:36.622+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2024-01-01 03:00:00+00:00, run_after=2024-04-01 03:00:00+00:00
+[2025-10-29T23:58:36.655+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 0.883 seconds
+[2025-10-29T23:59:06.886+0000] {processor.py:161} INFO - Started process (PID=208) to work on /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:06.888+0000] {processor.py:830} INFO - Processing file /opt/airflow/dags/tax_quarterly_dag.py for tasks to queue
+[2025-10-29T23:59:06.890+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:06.889+0000] {dagbag.py:538} INFO - Filling up the DagBag from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:07.650+0000] {processor.py:840} INFO - DAG(s) 'tax_quarterly' retrieved from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:07.690+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:07.689+0000] {dag.py:3036} INFO - Sync 1 DAGs
+[2025-10-29T23:59:07.734+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:07.733+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2024-04-01 03:00:00+00:00, run_after=2024-07-01 03:00:00+00:00
+[2025-10-29T23:59:07.787+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 0.909 seconds
+[2025-10-29T23:59:37.904+0000] {processor.py:161} INFO - Started process (PID=222) to work on /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:37.905+0000] {processor.py:830} INFO - Processing file /opt/airflow/dags/tax_quarterly_dag.py for tasks to queue
+[2025-10-29T23:59:37.906+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:37.906+0000] {dagbag.py:538} INFO - Filling up the DagBag from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:38.572+0000] {processor.py:840} INFO - DAG(s) 'tax_quarterly' retrieved from /opt/airflow/dags/tax_quarterly_dag.py
+[2025-10-29T23:59:38.607+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:38.607+0000] {dag.py:3036} INFO - Sync 1 DAGs
+[2025-10-29T23:59:38.641+0000] {logging_mixin.py:188} INFO - [2025-10-29T23:59:38.641+0000] {dag.py:3823} INFO - Setting next_dagrun for tax_quarterly to 2025-10-01 03:00:00+00:00, run_after=2026-01-01 03:00:00+00:00
+[2025-10-29T23:59:38.669+0000] {processor.py:183} INFO - Processing /opt/airflow/dags/tax_quarterly_dag.py took 0.770 seconds
