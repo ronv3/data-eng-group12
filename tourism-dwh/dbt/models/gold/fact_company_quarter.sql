@@ -1,80 +1,97 @@
-{{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_GOLD','gold')) }}              AND dg.island_norm = gh.island_norm, not registry code)
-WITH s AS (
+{{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_GOLD','gold')) }}
+
+{% set use_latest = var('use_latest_company', false) %}
+
+-- Source facts from Tax (one row per company-quarter)
+WITH f AS (
   SELECT
-    toString(property_bk)            AS property_bk_raw,
-    lowerUTF8(toString(property_bk)) AS property_bk_norm,
-    name                             AS accommodation_name_raw,
-    lowerUTF8(name)                  AS accommodation_name_norm,
-    toStartOfQuarter(period_date)    AS quarter_start,
-    rooms_cnt, beds_total, beds_high_season, beds_low_season, caravan_spots, tent_spots
-  FROM {{ ref('stg_housing_accommodation') }}
-  WHERE property_bk IS NOT NULL AND name IS NOT NULL
+    lowerUTF8(toString(registry_code))             AS registry_code_lc,
+    lowerUTF8(coalesce(county, ''))                AS county_lc,
+    lowerUTF8(coalesce(municipality, ''))          AS municipality_lc,
+    quarter_start,                                 -- Date
+    turnover_eur, state_taxes_eur, labour_taxes_eur, employees_cnt
+  FROM {{ ref('stg_tax_company_quarter') }}
+  WHERE registry_code IS NOT NULL
 ),
 
--- Map property -> company registry_code (seed)
-pcm AS (
-  SELECT
-    lowerUTF8(toString(property_bk)) AS property_bk_norm,
-    lowerUTF8(toString(registry_code)) AS registry_code_norm
-  FROM {{ ref('property_company_map') }}
-),
-
--- Current accommodation dimension (to resolve accommodation_sk)
-da AS (
-  SELECT
-    accommodation_sk,
-    lowerUTF8(toString(property_bk)) AS property_bk_norm,
-    lowerUTF8(name)                  AS accommodation_name_norm
-  FROM {{ ref('dim_accommodation') }}
-  WHERE is_current = 1
-),
-
--- Current company dimension (to resolve company_sk)
-dc AS (
-  SELECT
-    company_sk,
-    lowerUTF8(toString(registry_code)) AS registry_code_norm
-  FROM {{ ref('dim_company') }}
-  WHERE is_current = 1
-),
-
-dq AS (
-  SELECT quarter_sk, quarter_start
-  FROM {{ ref('dim_calendar_quarter') }}
-),
-
--- Hint geo from staging
-geo_hint AS (
-  SELECT
-    lowerUTF8(toString(property_bk))         AS property_bk_norm,
-    lowerUTF8(coalesce(anyLast(region), '')) AS region_norm,
-    lowerUTF8(coalesce(anyLast(island), '')) AS island_norm
-  FROM {{ ref('stg_housing_accommodation') }}
-  GROUP BY property_bk
-),
-
--- Deduplicate geography to 1 row per (region,island) to avoid fanout
+-- De-duplicate geography to 1:1 per (county, municipality)
 dg AS (
   SELECT
-    anyHeavy(geo_sk)                          AS geo_sk,
-    lowerUTF8(coalesce(region,''))            AS region_norm,
-    lowerUTF8(coalesce(island,''))            AS island_norm
-  FROM {{ ref('dim_geography') }}
-  GROUP BY region_norm, island_norm
+    anyHeavy(geo_sk) AS geo_sk,
+    county_lc, municipality_lc
+  FROM (
+    SELECT
+      geo_sk,
+      lowerUTF8(coalesce(county, ''))       AS county_lc,
+      lowerUTF8(coalesce(municipality, '')) AS municipality_lc
+    FROM {{ ref('dim_geography') }}
+  )
+  GROUP BY county_lc, municipality_lc
+),
+
+-- Quarter dimension (with end date for SCD windowing)
+dq AS (
+  SELECT quarter_sk, quarter_start, quarter_end
+  FROM {{ ref('dim_calendar_quarter') }}
+)
+
+{% if use_latest %}
+-- LATEST-ONLY mapping: 1 company_sk per registry_code (ignore SCD windows)
+, dc_map AS (
+  SELECT
+    lowerUTF8(toString(registry_code)) AS registry_code_lc,
+    argMax(company_sk, effective_from) AS company_sk
+  FROM {{ ref('dim_company') }}
+  GROUP BY lowerUTF8(toString(registry_code))
 )
 
 SELECT
-  da.accommodation_sk,
-  dc.company_sk,         -- will be non-null when a mapping exists
-  dq.quarter_sk,
-  dg.geo_sk,
-  s.rooms_cnt, s.beds_total, s.beds_high_season, s.beds_low_season, s.caravan_spots, s.tent_spots
-FROM s
-JOIN dq  ON dq.quarter_start = s.quarter_start
-LEFT JOIN da ON s.property_bk_norm = da.property_bk_norm
-           AND s.accommodation_name_norm = da.accommodation_name_norm
-LEFT JOIN pcm ON pcm.property_bk_norm = s.property_bk_norm
-LEFT JOIN dc  ON dc.registry_code_norm = pcm.registry_code_norm
-LEFT JOIN geo_hint gh ON gh.property_bk_norm = s.property_bk_norm
-LEFT JOIN dg ON dg.region_norm = gh.region_norm
-            AND dg.island_norm = gh.island_norm
+  m.company_sk,
+  q.quarter_sk,
+  g.geo_sk,
+  coalesce(f.turnover_eur,     0.) AS turnover_eur,
+  coalesce(f.state_taxes_eur,  0.) AS state_taxes_eur,
+  coalesce(f.labour_taxes_eur, 0.) AS labour_taxes_eur,
+  coalesce(f.employees_cnt,      0) AS employees_cnt
+FROM f
+JOIN dq AS q
+  ON q.quarter_start = f.quarter_start
+LEFT JOIN dc_map AS m
+  ON m.registry_code_lc = f.registry_code_lc
+LEFT JOIN dg AS g
+  ON g.county_lc = f.county_lc
+ AND g.municipality_lc = f.municipality_lc
+
+{% else %}
+-- SCD-aware mapping: keep rows only where the quarter intersects the SCD interval
+, dc AS (
+  SELECT
+    company_sk,
+    lowerUTF8(toString(registry_code)) AS registry_code_lc,
+    effective_from, effective_to
+  FROM {{ ref('dim_company') }}
+)
+
+SELECT
+  dc.company_sk,
+  q.quarter_sk,
+  g.geo_sk,
+  coalesce(f.turnover_eur,     0.) AS turnover_eur,
+  coalesce(f.state_taxes_eur,  0.) AS state_taxes_eur,
+  coalesce(f.labour_taxes_eur, 0.) AS labour_taxes_eur,
+  coalesce(f.employees_cnt,      0) AS employees_cnt
+FROM f
+JOIN dq AS q
+  ON q.quarter_start = f.quarter_start
+LEFT JOIN dc
+  ON dc.registry_code_lc = f.registry_code_lc
+LEFT JOIN dg AS g
+  ON g.county_lc = f.county_lc
+ AND g.municipality_lc = f.municipality_lc
+WHERE
+  dc.company_sk IS NULL
+  OR (
+    toDateTime(q.quarter_end)   >= dc.effective_from
+    AND toDateTime(q.quarter_start) <  dc.effective_to
+  )
+{% endif %}

@@ -1,4 +1,5 @@
-import io, requests, pandas as pd
+# housing.py
+import io, requests, pandas as pd, unicodedata
 from tqdm import tqdm
 from datetime import date
 from typing import Optional
@@ -14,6 +15,34 @@ NUMERIC_COLS = [
     'Telkimiskohtade arv'
 ]
 
+# --- NEW: header normalization and aliasing ---
+COLUMN_ALIASES = {
+    # variants -> canonical
+    "ettevõtte registrikood": "Ettevõtte registrikood",
+    "ettev\u00f5tte registrikood": "Ettevõtte registrikood",
+    "ettevotte registrikood": "Ettevõtte registrikood",
+    "ettevõtte regnr": "Ettevõtte registrikood",
+    "ettevõtte reg nr": "Ettevõtte registrikood",
+    "registrikood": "Ettevõtte registrikood",
+    "reg nr": "Ettevõtte registrikood",
+}
+
+def _canonicalize_cols(cols):
+    normed = []
+    for c in cols:
+        s = unicodedata.normalize("NFKC", str(c))  # normalize accents/width
+        s = s.replace("\u00A0", " ")               # NBSP -> space
+        s = s.strip()
+        normed.append(s)
+    return normed
+
+def _apply_aliases(cols):
+    out = []
+    for c in cols:
+        out.append(COLUMN_ALIASES.get(c.lower(), c))
+    return out
+# --- end new helpers ---
+
 def _download_stream(url: str, chunk_size: int = 1 << 15) -> Optional[io.BytesIO]:
     resp = requests.get(url, stream=True, timeout=60)
     resp.raise_for_status()
@@ -27,52 +56,40 @@ def _download_stream(url: str, chunk_size: int = 1 << 15) -> Optional[io.BytesIO
     return buf
 
 def _parse_excel_or_csv(buff: io.BytesIO) -> pd.DataFrame:
-    # Peek signature to decide parser
-    sig = buff.read(4)
-    buff.seek(0)
-
-    # XLSX files are ZIPs -> start with PK\x03\x04
+    sig = buff.read(4); buff.seek(0)
     if sig.startswith(b'PK\x03\x04'):
         dfs = pd.read_excel(buff, sheet_name=None, engine="openpyxl")
         first = next(iter(dfs))
         return dfs[first]
-
-    # Otherwise assume CSV; try utf-8 then a permissive fallback
     try:
         return pd.read_csv(buff)
     except UnicodeDecodeError:
         buff.seek(0)
         return pd.read_csv(buff, encoding="latin-1")
 
-
 def fetch_and_clean(housing_url: str) -> pd.DataFrame:
     buff = _download_stream(housing_url)
     if buff is None:
         raise RuntimeError("Failed to download housing file")
     df = _parse_excel_or_csv(buff)
+
+    # --- NEW: stabilize headers so JSON keys are stable going forward ---
+    df.columns = _canonicalize_cols(df.columns)
+    df.columns = _apply_aliases(df.columns)
+
     df = ensure_non_negative(df, NUMERIC_COLS)
-    # strict JSON: ensure no NaN/NaT; pandas will dump None as JSON null
-    df = df.where(pd.notna(df), None)
+    df = df.where(pd.notna(df), None)  # pandas dumps None -> JSON null
     return df
 
-
 def load_month(period_date: date, housing_url: str, source_file: str = "housing_download") -> int:
-    """
-    Idempotent monthly load:
-      - delete target month
-      - insert rows with hashes
-      - return inserted rowcount
-    """
     df = fetch_and_clean(housing_url)
 
-    # DQ in-batch: drop exact dup rows
     before = len(df)
     df = df.drop_duplicates()
     dropped = before - len(df)
     if dropped:
         print(f"DQ: dropped {dropped} duplicate rows (batch-level).")
 
-    # write to ClickHouse
     replace_partition_housing(period_date)
     insert_housing_rows(
         period_date,
