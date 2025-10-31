@@ -1,4 +1,4 @@
-# Accommodation Analytics — Star Schema (Project 1)
+# Accommodation Analytics: Data Eng course project
 
 Short repo to accompany the Report.pdf. It contains a minimal star schema, a few example inserts (optional), and demo SQL answering the business questions.
 
@@ -11,9 +11,14 @@ Goal: identify which locations and accommodation characteristics are most attrac
 
 > Note: EMTA is **company-level**. We **do not** store property-level turnover. Any distribution to properties (e.g., proportional by beds) is computed in queries and labeled **modeled**.
 
-## Files
-- `schema.sql` — DDL for all dims/facts (Postgres-flavored; should also work with minor tweaks in other RDBMS).
-- `sample_inserts.sql` — a handful of rows to illustrate table shapes.
+## Directories
+- `airflow` — Contains Airflow DAGs and ClickHouse DDL
+- `models` — DBT data models
+- `snapshots` — DBT snapshots of data
+- `target` — DBT configurations
+- `docker` — Includes airflow Docker image
+- `src` — Contains data ingestion scripts
+- 
 
 ## Star Schema (tables)
 - **Facts**

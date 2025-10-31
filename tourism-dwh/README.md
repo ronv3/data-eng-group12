@@ -1,97 +1,73 @@
-# Tourism DW (Postgres + pgAdmin)
+# Tourism DW (Airflow + DBT + ClickHouse)
 
-Minimal Docker setup that spins up:
-- PostgreSQL 16 with star schema for EMTA × VisitEstonia
-- Mock data (companies, properties, features, quarters)
-- pgAdmin UI to inspect/query
 
 ## 1) Prereqs
 - Docker Desktop (or Docker Engine + Compose)
 
 ## 2) Configure
-Modify `.env` in the repo root (or values can stay as-is for local dev):
+Create `.env` with the teplate of .env_template. Example credentials (feel free to choose your own):
 ```
-POSTGRES_USER=data_engineer
-POSTGRES_PASSWORD=Pass!w0rd
-POSTGRES_DB=assignment
-PGADMIN_DEFAULT_EMAIL=admin@admin.com
-PGADMIN_DEFAULT_PASSWORD=root
-```
+POSTGRES_USER=airflow
+POSTGRES_PASSWORD=airflow
+POSTGRES_DB=airflow
 
+AIRFLOW_USER=admin
+AIRFLOW_PASSWORD=admin
+
+CLICKHOUSE_USER=default
+CLICKHOUSE_PASSWORD=default
+CLICKHOUSE_DB_BRONZE=bronze
+CLICKHOUSE_DB_SILVER=silver
+TZ=UTC
+```
 
 ## 3) Start
 From project root (tourism-dwh):
 ```bash
+docker compose build
 docker compose up -d
 ```
 
 * Postgres: localhost:5432 (DB: assignment)
-* pgAdmin: http://localhost:5050
- (login with .env creds)
+* Airflow: http://localhost:8080
+ login with .env creds for Airflow, default credentials – Username: `admin`; Password: `admin`.
 
->The first run initializes the database and executes all pg_init/*.sql files.
->> In case first run does not execute pg_init files (create_schema, sample_inserts), try:   
->> ```docker exec -it db bash -c "psql -f /pg_init/create_schema.sql"```    
->> ```docker exec -it db bash -c "psql -f /pg_init/sample_inserts.sql"```
+>Access ClickHouse database inside terminal with:
+> ```docker exec -it clickhouse clickhouse-client```
+>> Optionally you can setup DB on your IDE for more user-friendly queries
 
-## 4) Connect pgAdmin to the database (first time run)
+## 4) Data
 
-1. Connect with pgAdmin:
-    *   Open your web browser and go to `http://localhost:5050`.
-    *   Log in using the email (`admin@admin.com`) and password (`root`) from your `.env` file.
-    *   To connect to your database:
-        1.  Right-click `Servers` -> `Create` -> `Server...`.
-        2.  **General tab**: Give it a name (e.g., tourism-db).
-        3.  **Connection tab**:
-            *   **Host name/address**: `db-tourism` (This is the service name from `compose.yml`).
-            *   **Port**: `5432`.
-            *   **Maintenance database**: `assignment`.
-            *   **Username**: `data_engineer`.
-            *   **Password**: `Pass!w0rd`.
-        4.  Click `Save`. You should now be connected to your PostgreSQL database!
+### We have 3 schemas – bronze, default_silver, default_gold
 
-2. Save. Expand Databases → assignment → Schemas → tourism_dwh.
+* Gold layer (default_gold)
+>```
+>   ┌─name─────────────────────────┐
+>1. │ bridge_accommodation_feature │
+>2. │ dim_accommodation            │
+>3. │ dim_calendar_quarter         │
+>4. │ dim_company                  │
+>5. │ dim_feature                  │
+>6. │ dim_geography                │
+>7. │ fact_accommodation_snapshot  │
+>8. │ fact_company_quarter         │
+>   └──────────────────────────────┘
+>```
 
-## 5) Try a query
+* Silver layer (default_silver)
+>```
+>   ┌─name──────────────────────┐
+>1. │ stg_company_latest        │
+>2. │ stg_housing_accommodation │
+>3. │ stg_housing_features      │
+>4. │ stg_tax_company_quarter   │
+>   └───────────────────────────┘
+>```
 
-In pgAdmin → Query Tool:
-
-### Sample KPI queries:
-
-1. Turnover per bed (modeled) by county, latest quarter
-```
-SET search_path TO tourism_dw;
-
--- Sample KPI: turnover per bed (modeled) by county, latest quarter
-WITH cap AS (
-  SELECT quarter_sk, company_sk, geo_sk, SUM(beds_total) AS beds
-  FROM fact_accommodation_snapshot
-  GROUP BY 1,2,3
-),
-latest_q AS (SELECT MAX(quarter_sk) AS q FROM dim_calendar_quarter)
-SELECT g.county,
-       SUM(f.turnover_eur) / NULLIF(SUM(cap.beds),0) AS eur_per_bed
-FROM fact_company_quarter f
-JOIN cap ON cap.company_sk = f.company_sk AND cap.quarter_sk = f.quarter_sk
-JOIN dim_geography g ON f.geo_sk = g.geo_sk
-WHERE f.quarter_sk = (SELECT q FROM latest_q)
-GROUP BY g.county
-ORDER BY eur_per_bed DESC;
-```
-
-2. Turnover per employee
-```
-SELECT 
-    da.type AS accommodation_type,
-    SUM(fcq.turnover_eur) / NULLIF(SUM(fcq.employees_cnt), 0) AS turnover_per_employee
-FROM fact_company_quarter fcq
-JOIN dim_company dc 
-    ON dc.company_sk = fcq.company_sk
-JOIN fact_accommodation_snapshot fas 
-    ON fas.company_sk = dc.company_sk
-JOIN dim_accommodation da 
-    ON da.accommodation_sk = fas.accommodation_sk
-WHERE fcq.employees_cnt IS NOT NULL
-GROUP BY da.type
-ORDER BY turnover_per_employee DESC;
-```
+* Bronze layer (bronze)
+>```
+>   ┌─name────────┐
+>1. │ housing_raw │
+>2. │ tax_raw     │
+>   └─────────────┘
+>```
