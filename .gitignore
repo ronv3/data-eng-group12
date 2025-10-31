@@ -54,9 +54,6 @@ ckdata/**/silver/
 ckdata/**/gold/
 ckdata/**/default_silver/
 ckdata/**/default_gold/
-# Keep schemas & configs if versioned
-!ckdata/format_schemas/
-!ckdata/metadata/
 
 # ---- Logs & temp files ----
 *.log
