@@ -1,83 +1,99 @@
-{{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_SILVER', 'silver')) }}
+{{ config(materialized='table', schema=env_var('CLICKHOUSE_DB_SILVER','silver')) }}
 
+-- 1) Read bronze, normalize NaN -> null once
 WITH src AS (
-    SELECT raw_json, ingested_at
-    FROM {{ source('bronze','tax_raw') }}
+  SELECT replaceAll(raw_json, 'NaN', 'null') AS raw_json_sane
+  FROM {{ source('bronze','tax_raw') }}
 ),
+
+-- 2) Parse fields to wide form (year + 4 quarters)
 base AS (
-    SELECT
-        coalesce(
-            toString(JSONExtractString(raw_json, 'Registry code')),
-            toString(JSONExtractInt(raw_json, 'Registry code')),
-            toString(JSONExtractUInt(raw_json, 'Registry code')),
-            replaceAll(JSONExtractRaw(raw_json, 'Registry code'), '"', '')
-        )                                                     AS registry_code,
-        JSONExtractString(raw_json, 'Name')                   AS company_name,
-        JSONExtractString(raw_json, 'Activity')               AS activity,
-        JSONExtractString(raw_json, 'County')                 AS county_raw,
-        toInt32OrNull(JSONExtractString(raw_json, 'Year'))    AS year_val,
-        array('I','II','III','IV')                            AS q_labels,
-        [
-          toFloat64OrNull(JSONExtractString(raw_json,'Turnover I qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Turnover II qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Turnover III qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Turnover IV qtr'))
-        ] AS turnover_arr,
-        [
-          toFloat64OrNull(JSONExtractString(raw_json,'State taxes I qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'State taxes II qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'State taxes III qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'State taxes IV qtr'))
-        ] AS state_taxes_arr,
-        [
-          toFloat64OrNull(JSONExtractString(raw_json,'Labour taxes and payments I qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Labour taxes and payments II qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Labour taxes and payments III qtr')),
-          toFloat64OrNull(JSONExtractString(raw_json,'Labour taxes and payments IV qtr'))
-        ] AS labour_taxes_arr,
-        [
-          toInt32OrNull(JSONExtractString(raw_json,'Number of employees I qtr')),
-          toInt32OrNull(JSONExtractString(raw_json,'Number of employees II qtr')),
-          toInt32OrNull(JSONExtractString(raw_json,'Number of employees III qtr')),
-          toInt32OrNull(JSONExtractString(raw_json,'Number of employees IV qtr'))
-        ] AS employees_arr
-    FROM src
+  SELECT
+    /* registry code as text without quotes/.0 */
+    nullIf(
+      replaceRegexpAll(
+        replaceRegexpAll(JSONExtractRaw(raw_json_sane, 'Registry code'), '^"|"$', ''),
+        '\\.0$',''
+      ),
+      ''
+    )                                                                                       AS registry_code_raw,
+
+    toInt32OrNull(
+      nullIf(
+        replaceRegexpAll(
+          replaceRegexpAll(JSONExtractRaw(raw_json_sane, 'Year'), '^"|"$', ''),
+          '\\.0$',''
+        ),
+        ''
+      )
+    )                                                                                       AS year,
+
+    nullIf(JSONExtractString(raw_json_sane, 'Name'),     '')                                AS company_name,
+    nullIf(JSONExtractString(raw_json_sane, 'Activity'), '')                                AS activity,
+    JSONExtractString(raw_json_sane, 'County')                                               AS county_muni_raw,
+
+    /* numeric measures per quarter (robust to numeric-or-text) */
+    coalesce(JSONExtractFloat(raw_json_sane, 'Turnover I qtr'),                           toFloat64OrNull(JSONExtractString(raw_json_sane, 'Turnover I qtr')))                           AS t1,
+    coalesce(JSONExtractFloat(raw_json_sane, 'State taxes I qtr'),                        toFloat64OrNull(JSONExtractString(raw_json_sane, 'State taxes I qtr')))                        AS s1,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Labour taxes and payments I qtr'),          toFloat64OrNull(JSONExtractString(raw_json_sane, 'Labour taxes and payments I qtr')))          AS l1,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Number of employees I qtr'),                toFloat64OrNull(JSONExtractString(raw_json_sane, 'Number of employees I qtr')))                AS e1,
+
+    coalesce(JSONExtractFloat(raw_json_sane, 'Turnover II qtr'),                          toFloat64OrNull(JSONExtractString(raw_json_sane, 'Turnover II qtr')))                          AS t2,
+    coalesce(JSONExtractFloat(raw_json_sane, 'State taxes II qtr'),                       toFloat64OrNull(JSONExtractString(raw_json_sane, 'State taxes II qtr')))                       AS s2,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Labour taxes and payments II qtr'),         toFloat64OrNull(JSONExtractString(raw_json_sane, 'Labour taxes and payments II qtr')))         AS l2,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Number of employees II qtr'),               toFloat64OrNull(JSONExtractString(raw_json_sane, 'Number of employees II qtr')))               AS e2,
+
+    coalesce(JSONExtractFloat(raw_json_sane, 'Turnover III qtr'),                         toFloat64OrNull(JSONExtractString(raw_json_sane, 'Turnover III qtr')))                         AS t3,
+    coalesce(JSONExtractFloat(raw_json_sane, 'State taxes III qtr'),                      toFloat64OrNull(JSONExtractString(raw_json_sane, 'State taxes III qtr')))                      AS s3,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Labour taxes and payments III qtr'),        toFloat64OrNull(JSONExtractString(raw_json_sane, 'Labour taxes and payments III qtr')))        AS l3,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Number of employees III qtr'),              toFloat64OrNull(JSONExtractString(raw_json_sane, 'Number of employees III qtr')))              AS e3,
+
+    coalesce(JSONExtractFloat(raw_json_sane, 'Turnover IV qtr'),                          toFloat64OrNull(JSONExtractString(raw_json_sane, 'Turnover IV qtr')))                          AS t4,
+    coalesce(JSONExtractFloat(raw_json_sane, 'State taxes IV qtr'),                       toFloat64OrNull(JSONExtractString(raw_json_sane, 'State taxes IV qtr')))                       AS s4,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Labour taxes and payments IV qtr'),         toFloat64OrNull(JSONExtractString(raw_json_sane, 'Labour taxes and payments IV qtr')))         AS l4,
+    coalesce(JSONExtractFloat(raw_json_sane, 'Number of employees IV qtr'),               toFloat64OrNull(JSONExtractString(raw_json_sane, 'Number of employees IV qtr')))               AS e4
+  FROM src
 ),
-exploded AS (
-    SELECT
-        registry_code,
-        company_name,
-        activity,
-        county_raw,
-        year_val,
-        q_lbl,
-        idx,
-        turnover,
-        state_taxes,
-        labour_taxes,
-        employees
-    FROM base
-    ARRAY JOIN
-        arrayEnumerate(q_labels) AS idx,
-        q_labels AS q_lbl,
-        turnover_arr AS turnover,
-        state_taxes_arr AS state_taxes,
-        labour_taxes_arr AS labour_taxes,
-        employees_arr AS employees
+
+-- 3) Clean registry + county/municipality and unpivot quarters
+unpivot AS (
+  SELECT
+    nullIf(registry_code_raw, '')                                                           AS registry_code,
+
+    /* county = before '(' ; municipality = inside '( ... )' ; both trimmed */
+    nullIf(trim(BOTH ' ' FROM replaceRegexpAll(coalesce(county_muni_raw,''), '\\(.*$', '')), '')                               AS county,
+    nullIf(trim(BOTH ' ' FROM replaceRegexpAll(coalesce(county_muni_raw,''), '^.*\\(\\s*([^\\)]+)\\s*\\).*$', '\\1')), '')     AS municipality,
+
+    nullIf(company_name,'')                                                                 AS company_name,
+    nullIf(activity,'')                                                                     AS activity,
+    year,
+
+    arrayJoin( [ (1, t1, s1, l1, e1),
+                 (2, t2, s2, l2, e2),
+                 (3, t3, s3, l3, e3),
+                 (4, t4, s4, l4, e4) ] )                                                    AS q
+  FROM base
+  WHERE registry_code IS NOT NULL AND year IS NOT NULL
 )
+
+-- 4) Final long form
 SELECT
-    registry_code,
-    company_name,
-    activity,
-    trim(arrayElement(splitByChar('(', county_raw), 1))                         AS county,
-    nullIf(replaceAll(trim(arrayElement(splitByChar('(', county_raw), 2)),')',''),'') AS municipality,
-    year_val                                                                                   AS year,
-    idx                                                                                        AS quarter_num,
-    toDate(addMonths(toDate(concat(toString(year_val),'-01-01')), (idx - 1) * 3))             AS quarter_start,
-    toDate(addMonths(toDate(concat(toString(year_val),'-01-01')), (idx) * 3) - 1)             AS quarter_end,
-    turnover                                                                                   AS turnover_eur,
-    state_taxes                                                                                AS state_taxes_eur,
-    labour_taxes                                                                               AS labour_taxes_eur,
-    employees                                                                                  AS employees_cnt
-FROM exploded
-WHERE (turnover IS NOT NULL) OR (state_taxes IS NOT NULL) OR (labour_taxes IS NOT NULL) OR (employees IS NOT NULL)
+  registry_code,
+  county,
+  municipality,
+  year,
+  q.1 AS quarter,
+  toDate(concat(toString(year), '-', multiIf(q.1 = 1, '01', q.1 = 2, '04', q.1 = 3, '07', '10'), '-01')) AS quarter_start,
+
+  q.2 AS turnover_eur,
+  q.3 AS state_taxes_eur,
+  q.4 AS labour_taxes_eur,
+  CAST(q.5 AS Nullable(Int32)) AS employees_cnt,
+
+  company_name,
+  activity
+FROM unpivot
+WHERE q.2 IS NOT NULL
+   OR q.3 IS NOT NULL
+   OR q.4 IS NOT NULL
+   OR q.5 IS NOT NULL

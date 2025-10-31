@@ -36,6 +36,28 @@ docker compose up -d
 > ```docker exec -it clickhouse clickhouse-client```
 >> Optionally you can setup DB on your IDE for more user-friendly queries
 
+### For first run, use:
+```
+docker compose exec airflow-scheduler bash -lc '
+  set -euo pipefail
+  export PATH="$PATH:/home/airflow/.local/bin"
+  export DBT_PROFILES_DIR=/opt/airflow/dbt
+  cd /opt/airflow/dbt
+  dbt build --select +path:models/gold --full-refresh --threads 1
+'
+'
+```
+
+### For future runs, use:
+```
+docker compose exec airflow-scheduler bash -lc '
+  set -euo pipefail
+  export DBT_PROFILES_DIR=/opt/airflow/dbt
+  cd /opt/airflow/dbt
+  dbt run --select fact_company_quarter --full-refresh --vars "use_latest_company: false" --threads 1
+'
+```
+
 ## 4) Data
 
 ### We have 3 schemas – bronze, default_silver, default_gold
