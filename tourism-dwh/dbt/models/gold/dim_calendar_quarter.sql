@@ -1,20 +1,31 @@
-{{ config(materialized='table', schema='gold') }}
+{{ config(
+  schema='gold',
+  materialized='table',
+  engine='MergeTree()',
+  order_by=['quarter_sk']
+) }}
 
-WITH qsrc AS (
-  SELECT DISTINCT toStartOfQuarter(period_date) AS quarter_start
-  FROM {{ ref('stg_housing_accommodation') }}
-  WHERE period_date IS NOT NULL
-
-  UNION ALL
-
-  SELECT DISTINCT quarter_start
-  FROM {{ ref('stg_tax_company_quarter') }}
+WITH bounds AS (
+  SELECT
+    toDate('2000-01-01') AS d_start,
+    toDate('2035-12-31') AS d_end
+),
+span AS (
+  /* number of whole 3-month steps inclusive */
+  SELECT
+    d_start,
+    greatest(0, intDiv(dateDiff('month', d_start, d_end), 3)) AS q_span
+  FROM bounds
+),
+series AS (
+  /* Finite generator: 0..q_span, then step by 3 months */
+  SELECT
+    addMonths(d_start, q * 3) AS quarter_start
+  FROM span
+  ARRAY JOIN range(q_span + 1) AS q
 )
 SELECT
   toUInt32(toYear(quarter_start) * 10 + toQuarter(quarter_start)) AS quarter_sk,
-  toYear(quarter_start)                                           AS year,
-  toQuarter(quarter_start)                                        AS quarter,
-  quarter_start                                                   AS quarter_start,
-  toDate(addMonths(quarter_start, 3) - 1)                         AS quarter_end
-FROM qsrc
-GROUP BY quarter_start
+  toDateTime(quarter_start)                                        AS quarter_start
+FROM series
+ORDER BY quarter_start

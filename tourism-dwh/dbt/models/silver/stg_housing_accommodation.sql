@@ -45,11 +45,8 @@ SELECT
     ''
   ) AS property_bk,
 
-  /* NEW: digits-only registry code, ideal for joins */
-  nullIf(
-    replaceRegexpAll(toString(registry_code_raw), '[^0-9]', ''),
-    ''
-  ) AS registry_code,
+  /* digits-only registry code (often already digits) */
+  nullIf(replaceRegexpAll(toString(registry_code_raw), '[^0-9]', ''), '') AS registry_code,
 
   -- existing fields
   nullIf(JSONExtractString(raw_json_sane, 'Turismiobjekti nimi'), '')  AS name,
@@ -82,7 +79,14 @@ SELECT
 
   nullIf(JSONExtractString(raw_json_sane, 'facebook'), '')               AS facebook,
   nullIf(JSONExtractString(raw_json_sane, 'instagram'), '')              AS instagram,
-  nullIf(JSONExtractString(raw_json_sane, 'tiktok'), '')                 AS tiktok
+  nullIf(JSONExtractString(raw_json_sane, 'tiktok'), '')                 AS tiktok,
+
+  /* === Time alignment (Approach #3: shift Jan/Apr/Jul/Oct back one month) === */
+  toStartOfMonth(period_date) AS observed_month,
+  (toMonth(toStartOfMonth(period_date)) IN (1,4,7,10)) AS is_shifted_month,
+  if(is_shifted_month, addMonths(toStartOfMonth(period_date), -1), toStartOfMonth(period_date)) AS reference_month,
+  toStartOfQuarter(reference_month) AS reporting_quarter_start,
+  toUInt32(toYear(reporting_quarter_start) * 10 + toQuarter(reporting_quarter_start)) AS reporting_quarter_sk
 FROM reg_code_raw
 WHERE (JSONExtractString(raw_json_sane, 'Turismiobjekti nimi') != '')
    OR (registry_code_raw IS NOT NULL AND registry_code_raw != '')
