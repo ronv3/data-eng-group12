@@ -1,0 +1,21 @@
+name: "tourism_dwh"
+version: "1.0.0"
+config-version: 2
+
+profile: "tourism_clickhouse"
+
+vars:
+  use_latest_company: "{{ env_var('USE_LATEST_COMPANY', 'false') }}"
+
+model-paths: ['models']
+snapshot-paths: ['snapshots']
+
+models:
+  tourism_dwh:
+    +materialized: table
+    silver:
+      +schema: silver
+    gold:
+      +schema: gold
+snapshots:
+  +target_schema: gold
