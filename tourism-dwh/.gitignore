@@ -1,0 +1,59 @@
+# --- OS / Editors ---
+.DS_Store
+Thumbs.db
+../.idea/
+.vscode/
+*.swp
+
+# --- Python / venvs ---
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+.eggs/
+*.egg-info/
+.eggs/
+
+# --- Env files (keep the template tracked) ---
+.env
+.env.*
+
+# --- Airflow runtime ---
+airflow/logs/
+airflow/dags/__pycache__/
+airflow/plugins/__pycache__/
+pgdata_airflow/
+
+# --- Project runtime logs ---
+logs/
+**/*.log
+
+# --- dbt build artifacts & local profile ---
+dbt/target/
+dbt/dbt_packages/
+dbt/.user.yml
+dbt/package-lock.yml
+dbt/manifest.json
+dbt/run_results.json
+dbt/sources.json
+dbt/graph.gpickle
+
+# (keep these tracked: dbt/packages.yml, dbt/dbt_project.yml, dbt/models/**, dbt/tests/**, dbt/snapshots/**)
+
+# --- ClickHouse local data (all on-disk data & metadata) ---
+ckdata/
+
+# --- Containers / misc caches ---
+*.tmp
+*.bak
+.cache/
+.tox/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/

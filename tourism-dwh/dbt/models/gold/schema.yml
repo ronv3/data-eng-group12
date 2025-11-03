@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: dim_company
+    columns:
+      - name: company_sk
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_accommodation
+    columns:
+      - name: accommodation_sk
+        tests:
+          - not_null
+          - unique
+
+  - name: fact_accommodation_snapshot
+    columns:
+      - name: quarter_sk
+        tests:
+          - relationships:
+              to: ref('dim_calendar_quarter')
+              field: quarter_sk
+      - name: geo_sk
+        tests:
+          - relationships:
+              to: ref('dim_geography')
+              field: geo_sk

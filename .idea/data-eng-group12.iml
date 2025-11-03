@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/data/bronze" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/data/default" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/data/default_silver" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/data/gold" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/data/silver" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/flags" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/format_schemas" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/metadata_dropped" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/named_collections" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/store" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/user_defined" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/ckdata/user_files" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/dbt/dbt_packages" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/dbt/dbt_packages/dbt_utils/integration_tests/.env" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/dbt/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/dbt/target" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/dag_id=gold_dag" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/dag_id=housing_monthly" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/dag_id=silver_dag" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/dag_id=tax_quarterly" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/scheduler/2025-10-30" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/scheduler/2025-10-31" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/scheduler/2025-11-01" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/scheduler/2025-11-02" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/logs/scheduler/2025-11-03" />
+      <excludeFolder url="file://$MODULE_DIR$/tourism-dwh/pgdata_airflow" />
+    </content>
+    <orderEntry type="jdk" jdkName="Python 3.12" jdkType="Python SDK" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+  <component name="PyDocumentationSettings">
+    <option name="format" value="PLAIN" />
+    <option name="myDocStringFormat" value="Plain" />
+  </component>
+</module>
