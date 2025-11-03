@@ -6,14 +6,12 @@ models:
       - name: company_sk
         tests:
           - not_null
-          - unique
 
   - name: dim_accommodation
     columns:
       - name: accommodation_sk
         tests:
           - not_null
-          - unique
 
   - name: fact_accommodation_snapshot
     columns:

@@ -45,7 +45,6 @@ docker compose exec airflow-scheduler bash -lc '
   cd /opt/airflow/dbt
   dbt build --select +path:models/gold --full-refresh --threads 1
 '
-'
 ```
 
 ### For future runs, use:
