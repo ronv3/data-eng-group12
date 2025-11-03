@@ -1,4 +1,4 @@
-# Tourism DW (Airflow + DBT + ClickHouse)
+# Tourism DWH (Airflow + DBT + ClickHouse)
 
 
 ## 1) Prereqs
