@@ -53,7 +53,7 @@ docker compose exec airflow-scheduler bash -lc '
   set -euo pipefail
   export DBT_PROFILES_DIR=/opt/airflow/dbt
   cd /opt/airflow/dbt
-  dbt run --select fact_company_quarter --full-refresh --vars "use_latest_company: false" --threads 1
+  dbt run --select +path:models/gold --threads 1
 '
 ```
 
