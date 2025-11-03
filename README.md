@@ -23,16 +23,16 @@ Goal: identify which locations and accommodation characteristics are most attrac
 - **EMTA** (quarterly, company-level): turnover, (labour/state) taxes, employees — joined by `registry_code`.
 - **VisitEstonia / National Tourism IS — Housing** (monthly, property-level): accommodation metadata, capacity (beds/rooms), amenities, and `Ettevõtte registrikood`.
 
-> Note: EMTA is **company-level**. We **do not** store property-level turnover. Any distribution to properties (e.g., proportional by beds) is computed in queries and labeled **modeled**.
+> Note: EMTA is **company-level**. We **do not** store property-level turnover. Any distribution to properties (e.g., proportional by beds) computed in queries and is **generalized** due to limited data.
 
 <a id="directories"></a>
 ## Directories (essentials)
 
 - `airflow/` — Production orchestration (DAGs) + ClickHouse DDL bootstrap.
 - `dbt/models/silver/` — Cleaned staging (“Silver”) models from bronze.
-- `dbt/models/gold/` — Star-schema (“Gold”) facts & dimensions.
+- `dbt/models/gold/` — Star-schema (“Gold”) facts & dimensions, including general tests in `schema.yml`.
 - `dbt/snapshots/` — SCD2 snapshots feeding Gold dims.
-- `dbt/tests/` — Lightweight data tests (schema + singular).
+- `dbt/tests/` — Lightweight data tests (specific).
 - `src/ingestion/` — Ingestion loaders & helpers for housing/tax sources.
 - `docker/` & `compose.yml` — Local runtime images and services wiring.
 
