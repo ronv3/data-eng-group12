@@ -1,7 +1,21 @@
 # Accommodation Analytics: Data Eng course project
 
-Short repo to accompany the Report.pdf. It contains a minimal star schema, a few example inserts (optional), and demo SQL answering the business questions.
-
+**Quick links:**  
+- [Overview](#overview)
+- [Directories](#directories)
+- [How to use](#how-to-use)
+- [Gold Star Schema](#gold-star-schema)
+- [DBT Runs](#dbt-runs)
+- [Airflow DAGs](#airflow-dags)
+- [Example Queries](#example-queries)
+  - [1) Types → turnover per bed](#q1-types-turnover-per-bed)
+  - [2) Features → turnover per bed](#q2-features-turnover-per-bed)
+  - [3) Company performance](#q3-company-performance)
+  - [4) Regional turnover per bed](#q4-regional-turnover-per-bed)
+  - [5) Employees per 100 beds](#q5-employees-per-100-beds)
+- [Licensing / Sources](#licensing)
+  
+<a id="overview"></a>
 ## Overview
 Goal: identify which locations and accommodation characteristics are most attractive for Estonian accommodation businesses, and how capacity relates to financial performance.
 
@@ -11,34 +25,94 @@ Goal: identify which locations and accommodation characteristics are most attrac
 
 > Note: EMTA is **company-level**. We **do not** store property-level turnover. Any distribution to properties (e.g., proportional by beds) is computed in queries and labeled **modeled**.
 
-## Directories
-- `airflow` — Contains Airflow DAGs and ClickHouse DDL
-- `models` — DBT data models
-- `snapshots` — DBT snapshots of data
-- `target` — DBT configurations
-- `docker` — Includes airflow Docker image
-- `src` — Contains data ingestion scripts
+<a id="directories"></a>
+## Directories (essentials)
 
-## Star Schema (tables)
-- **Facts**
-  - `fact_company_quarter` (grain: company × quarter) — turnover, taxes, employees.
-  - `fact_accommodation_snapshot` (grain: accommodation × quarter) — capacity snapshot.
-- **Dimensions**
-  - `dim_company` (SCD2; BK: `registry_code`)
-  - `dim_accommodation` (SCD2; BK: `property_bk` = hash(normalized(name,address)))
-  - `dim_feature` + `bridge_accommodation_feature` (amenities M:N)
-  - `dim_geography`
-  - `dim_calendar_quarter`
+- `airflow/` — Production orchestration (DAGs) + ClickHouse DDL bootstrap.
+- `dbt/models/silver/` — Cleaned staging (“Silver”) models from bronze.
+- `dbt/models/gold/` — Star-schema (“Gold”) facts & dimensions.
+- `dbt/snapshots/` — SCD2 snapshots feeding Gold dims.
+- `dbt/tests/` — Lightweight data tests (schema + singular).
+- `src/ingestion/` — Ingestion loaders & helpers for housing/tax sources.
+- `docker/` & `compose.yml` — Local runtime images and services wiring.
 
+---
+
+<a id="how-to-use"></a>
 ## How to use
 * Follow this technical [README.md](tourism-dwh/README.md) for setup, schema definitions _etc_.
-> If you are on Github Web, use this [link to README.md](https://github.com/ronv3/data-end-group12/tourism-dwh/README.md)
+> If you are on Github Web, use this [link to README.md](https://github.com/ronv3/data-eng-group12/blob/main/tourism-dwh/README.md)
 
-## Licensing / Sources
-Open data from EMTA and VisitEstonia/National Tourism IS.
+---
+
+<a id="gold-star-schema"></a>
+## Gold Layer — Star Schema (Basics)
+
+This is the **analytics layer** built from Silver staging via dbt. Dimensions are **SCD2** (current flag + effective windows), and facts carry surrogate keys for consistent joins.
+
+### Facts
+
+#### `gold.fact_company_quarter`
+- **Grain:** `company_sk × quarter_sk`
+- **FKs:** `company_sk`, `quarter_sk`
+- **Measures:**  
+  `turnover_eur`, `state_taxes_eur`, `labour_taxes_eur`, `employees_cnt`
+
+#### `gold.fact_accommodation_snapshot`
+- **Grain:** `accommodation_sk × quarter_sk` (as-of snapshot)
+- **FKs:** `accommodation_sk`, `company_sk`, `quarter_sk`, `geo_sk`
+- **Measures:**  
+  `rooms_cnt`, `beds_total`, `caravan_spots`, `tent_spots`
+
+---
+
+### Dimensions
+
+#### `gold.dim_company` (SCD2)
+- **PK:** `company_sk`
+- **BK / ID:** `company_id` (normalized registry code)
+- **Attributes:** `name`, `activity`, `website`, `email`, `phone`, `address`,
+  `municipality`, `county`, `effective_from`, `effective_to`, `is_current`
+
+#### `gold.dim_accommodation` (SCD2)
+- **PK:** `accommodation_sk`
+- **BK:** `accommodation_bk` (`property_bk|name`)
+- **Attributes:** `property_bk_norm`, `type`, `category`, `stars`,
+  `effective_from`, `effective_to`, `is_current`
+
+#### `gold.dim_feature`
+- **PK:** `feature_sk`
+- **Attributes:** `name`
+
+#### `gold.bridge_accommodation_feature` (M:N)
+- **Columns:** `accommodation_sk`, `feature_sk`
+
+#### `gold.dim_geography`
+- **PK:** `geo_sk`
+- **Attributes:** `region`, `island`
+
+#### `gold.dim_calendar_quarter`
+- **PK:** `quarter_sk`
+- **Attributes:** `quarter_start` (UTC)
+
+---
+
+### Join Paths
+
+- `fact_accommodation_snapshot.company_sk  → dim_company.company_sk`
+- `fact_accommodation_snapshot.accommodation_sk → dim_accommodation.accommodation_sk`
+- `fact_accommodation_snapshot.geo_sk     → dim_geography.geo_sk`
+- `fact_accommodation_snapshot.quarter_sk → dim_calendar_quarter.quarter_sk`
+- `fact_company_quarter.company_sk        → dim_company.company_sk`
+- `fact_company_quarter.quarter_sk        → dim_calendar_quarter.quarter_sk`
+
+> SCD2 is maintained via dbt **snapshots** (`gold.accommodation_snapshot`, `gold.company_snapshot`), and Gold dims are rebuilt from those snapshots.
+
+---
 
 # Technical correctness overview
 
+<a id="dbt-runs"></a>
 ## DBT Runs
 - DBT runs for all models and tests (including tests, 1 warning) - not including snapshots (running these when not needed is not recommended)
 ```
@@ -99,6 +173,7 @@ Open data from EMTA and VisitEstonia/National Tourism IS.
 13:13:08  Done. PASS=18 WARN=1 ERROR=0 SKIP=0 TOTAL=19
 ```
 
+<a id="airflow-dags"></a>
 ## Airflow DAGs Overview
 
 ### All DAGs overview
@@ -116,9 +191,10 @@ Open data from EMTA and VisitEstonia/National Tourism IS.
 
 ---
 
+<a id="example-queries"></a>
 ## Queries to business questions with results from Database
 
-
+<a id="q1-types-turnover-per-bed"></a>
 ### 1) Which accommodation types drive the highest turnover per bed by quarter?
 **Who cares:** hotel/hostel operators, pricing teams, tourism board.
 
@@ -154,6 +230,7 @@ ORDER BY fas.quarter_sk ASC, turnover_per_bed DESC
 ```
 ---
 
+<a id="q2-features-turnover-per-bed"></a>
 ### 2) Which features correlate with higher turnover per bed?
 *(e.g., Mullivann, sauna, spa) – last 4 quarters or all-time as-is.*  
 **Who cares:** product/amenities owners, capex planners, marketers.
@@ -212,6 +289,7 @@ ORDER BY fas.quarter_sk ASC, turnover_per_bed DESC
 ```
 ---
 
+<a id="q3-company-performance"></a>
 ### 3) How is company X performing over time (turnover per bed)?
 **Company:** HESTIA HOTEL GROUP OÜ (12774215)  
 **Who cares:** investors, lenders, partner managers, the company itself.
@@ -243,6 +321,7 @@ ORDER BY fas.quarter_sk ASC
 
 ---
 
+<a id="q4-regional-turnover-per-bed"></a>
 ### 4) Regional turnover per bed by quarter (region / island)
 **Who cares:** regional tourism boards, municipalities, route planners.
 
@@ -280,6 +359,7 @@ ORDER BY g.region ASC, g.island ASC, fas.quarter_sk ASC
 
 ---
 
+<a id="q5-employees-per-100-beds"></a>
 ### 5) Operational intensity: employees per 100 beds by type
 **Who cares:** workforce planners, ops leaders (staffing benchmarks).
 
@@ -313,3 +393,9 @@ ORDER BY fas.quarter_sk ASC, employees_per_100_beds DESC
 | Puhkeküla, karavanid |        20253 |                 19.4526  |         4750 |
 | Kodumajutus          |        20253 |                  7.64431 |          641 |
 ```
+
+---
+
+<a id="licensing"></a>
+## Licensing / Sources
+Open data from EMTA and VisitEstonia/National Tourism IS.
