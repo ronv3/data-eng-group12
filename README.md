@@ -155,7 +155,7 @@ ORDER BY fas.quarter_sk ASC, turnover_per_bed DESC
 ---
 
 ### 2) Which features correlate with higher turnover per bed?
-*(e.g., âMullivannâ, sauna, spa) â last 4 quarters or all-time as-is.*  
+*(e.g., Mullivann, sauna, spa) – last 4 quarters or all-time as-is.*  
 **Who cares:** product/amenities owners, capex planners, marketers.
 
 **SQL**
@@ -213,7 +213,7 @@ ORDER BY fas.quarter_sk ASC, turnover_per_bed DESC
 ---
 
 ### 3) How is company X performing over time (turnover per bed)?
-**Company:** HESTIA HOTEL GROUP OÃ (12774215)  
+**Company:** HESTIA HOTEL GROUP OÜ (12774215)  
 **Who cares:** investors, lenders, partner managers, the company itself.
 
 **SQL**

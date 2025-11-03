@@ -81,10 +81,9 @@ SELECT
   nullIf(JSONExtractString(raw_json_sane, 'instagram'), '')              AS instagram,
   nullIf(JSONExtractString(raw_json_sane, 'tiktok'), '')                 AS tiktok,
 
-  /* === Time alignment (Approach #3: shift Jan/Apr/Jul/Oct back one month) === */
+  /* === Time alignment (Approach #3: shift back one month) === */
   toStartOfMonth(period_date) AS observed_month,
-  (toMonth(toStartOfMonth(period_date)) IN (1,4,7,10)) AS is_shifted_month,
-  if(is_shifted_month, addMonths(toStartOfMonth(period_date), -1), toStartOfMonth(period_date)) AS reference_month,
+  addMonths(toStartOfMonth(period_date), -1) AS reference_month,
   toStartOfQuarter(reference_month) AS reporting_quarter_start,
   toUInt32(toYear(reporting_quarter_start) * 10 + toQuarter(reporting_quarter_start)) AS reporting_quarter_sk
 FROM reg_code_raw
