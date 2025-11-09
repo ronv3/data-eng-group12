@@ -43,6 +43,7 @@ docker compose exec airflow-scheduler bash -lc '
   export PATH="$PATH:/home/airflow/.local/bin"
   export DBT_PROFILES_DIR=/opt/airflow/dbt
   cd /opt/airflow/dbt
+  dbt deps
   dbt build --select +path:models/gold --full-refresh --threads 1
 '
 ```
