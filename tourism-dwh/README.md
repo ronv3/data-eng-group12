@@ -36,7 +36,9 @@ docker compose up -d
 > ```docker exec -it clickhouse clickhouse-client```
 >> Optionally you can setup DB on your IDE for more user-friendly queries
 
-### For first run, use:
+### For first run: 
+#### 1. First run bronze layer via Airflow (trigger housing_monthly_dag and tax_quarterly_dag) 
+#### 2. In terminal (from tourism-dwh directory) run:
 ```
 docker compose exec airflow-scheduler bash -lc '
   set -euo pipefail
@@ -48,7 +50,7 @@ docker compose exec airflow-scheduler bash -lc '
 '
 ```
 
-### For future runs, use:
+### For future manual runs, use (but no need, Airflow triggers automatically):
 ```
 docker compose exec airflow-scheduler bash -lc '
   set -euo pipefail
