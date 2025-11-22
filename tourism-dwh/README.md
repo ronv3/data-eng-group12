@@ -54,6 +54,7 @@ docker compose up -d
    * More problems can be solved by removing previous volumes, builds, images
 
 ### For local dbt runs, use:
+```
 docker compose exec airflow-scheduler bash -lc '
   set -euo pipefail
   export DBT_PROFILES_DIR=/opt/airflow/dbt
@@ -61,6 +62,7 @@ docker compose exec airflow-scheduler bash -lc '
   dbt run --select +path:models/gold --threads 1
 '
 ```
+> Note: `--select +path:models/gold` runs all models in `dbt/models/gold`.
 
 ## 4) Data
 
