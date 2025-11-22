@@ -1,4 +1,4 @@
-# Tourism DW (Airflow + DBT + ClickHouse)
+# Tourism DWH (Airflow + DBT + ClickHouse)
 
 
 ## 1) Prereqs
@@ -24,6 +24,7 @@ TZ=UTC
 ## 3) Start
 From project root (tourism-dwh):
 ```bash
+docker compose build
 docker compose up -d
 ```
 
@@ -35,34 +36,29 @@ docker compose up -d
 > ```docker exec -it clickhouse clickhouse-client```
 >> Optionally you can setup DB on your IDE for more user-friendly queries
 
-### For first run
+### For first run: 
+#### 1. First run bronze layer via Airflow (trigger housing_monthly_dag and tax_quarterly_dag) 
+#### 2. In terminal (from tourism-dwh directory) run:
+```
+docker compose exec airflow-scheduler bash -lc '
+  set -euo pipefail
+  export PATH="$PATH:/home/airflow/.local/bin"
+  export DBT_PROFILES_DIR=/opt/airflow/dbt
+  cd /opt/airflow/dbt
+  dbt deps
+  dbt build --select +path:models/gold --full-refresh --threads 1
+'
+```
 
-* Run DAGs in Airflow in the right order
-  * tax_quarterly_dag → housing_monthly_dag → silver_dag → gold_dag
-
-> Note: After triggering tax_quarterly_dag or housing_monthly_dag, silver and gold level DAGs are automatically queued.
-
-#### Problems you may run into
-1. `[Errno 35] Resource deadlock avoided`  (on Mac)
-   * Look for the section "Choose file sharing implementation for your Docker containers". 
-   * It is likely set to VirtioFS. Change it to gRPC FUSE (or osxfs if available). 
-     * Note: gRPC FUSE is slightly slower but much more stable for this specific "deadlock" error.
-
-2. Conflicting Docker Containers
-   * If Docker containers with the same name are already used, disable or remove them from the list. 
-   * More problems can be solved by removing previous volumes, builds, images
-
-### For local dbt runs, use:
+### For future manual runs, use (but no need, Airflow triggers automatically):
 ```
 docker compose exec airflow-scheduler bash -lc '
   set -euo pipefail
   export DBT_PROFILES_DIR=/opt/airflow/dbt
   cd /opt/airflow/dbt
-  dbt run --select gold --full-refresh --vars "use_latest_company: false" --threads 1
+  dbt run --select +path:models/gold --threads 1
 '
 ```
-> Note: This command runs all models in directory `dbt/models/gold`
-
 
 ## 4) Data
 
