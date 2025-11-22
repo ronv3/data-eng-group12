@@ -2,26 +2,92 @@ version: 2
 
 models:
   - name: dim_company
+    description: "Company details and validity periods."
     columns:
       - name: company_sk
+        description: "Unique surrogate key for company."
         tests:
           - not_null
+      - name: company_id
+        description: "Business registry code of company."
+      - name: name
+        description: "Official legal name of company."
+      - name: effective_from
+        description: "Record validity start timestamp."
 
   - name: dim_accommodation
+    description: "Accommodation establishment details and history."
     columns:
       - name: accommodation_sk
+        description: "Unique surrogate key for accommodation."
         tests:
           - not_null
+      - name: property_bk_norm
+        description: "Normalized property ID from source."
+      - name: type
+        description: "Type of accommodation (hotel, hostel)."
+      - name: category
+        description: "Official category classification."
+      - name: stars
+        description: "Number of stars assigned."
 
-  - name: fact_accommodation_snapshot
+  - name: dim_geography
+    description: "Regional hierarchy of accommodations."
+    columns:
+      - name: geo_sk
+        description: "Unique surrogate key for location."
+        tests:
+          - not_null
+      - name: region
+        description: "County or region name."
+      - name: island
+        description: "Island name if applicable."
+
+  - name: dim_calendar_quarter
+    description: "Standardized quarterly calendar reference."
     columns:
       - name: quarter_sk
+        description: "Integer representation of Quarter (YYYYQ)."
+        tests:
+          - unique
+          - not_null
+      - name: quarter_start
+        description: "First date of the quarter."
+
+  - name: fact_accommodation_snapshot
+    description: "Quarterly performance snapshot of accommodations."
+    columns:
+      - name: quarter_sk
+        description: "Foreign key to calendar quarter."
         tests:
           - relationships:
               to: ref('dim_calendar_quarter')
               field: quarter_sk
       - name: geo_sk
+        description: "Foreign key to geography dimension."
         tests:
           - relationships:
               to: ref('dim_geography')
               field: geo_sk
+      - name: rooms_cnt
+        description: "Total number of rooms available."
+      - name: beds_total
+        description: "Total number of beds available."
+
+  - name: fact_company_quarter
+    description: "Quarterly financial metrics for companies."
+    columns:
+      - name: company_sk
+        description: "Foreign key to company dimension."
+      - name: turnover_eur
+        description: "Quarterly taxable turnover in EUR."
+      - name: employees_cnt
+        description: "Count of employees at quarter end."
+
+  - name: bridge_accommodation_feature
+    description: "Maps accommodations to amenities/features."
+    columns:
+      - name: accommodation_sk
+        description: "Foreign key to accommodation."
+      - name: feature_sk
+        description: "Foreign key to feature dimension."

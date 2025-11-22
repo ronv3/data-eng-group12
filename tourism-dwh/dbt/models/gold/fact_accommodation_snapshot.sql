@@ -10,8 +10,10 @@ WITH base AS (
         -- BKs & normalized strings
         lowerUTF8(toString(property_bk))                                        AS property_bk_norm,
         lowerUTF8(toString(coalesce(name, '')))                                  AS name_norm,
-        lowerUTF8(nullIf(replaceRegexpAll(toString(region), '^[[:space:]]+|[[:space:]]+$', ''), ''))  AS region_norm,
-        lowerUTF8(nullIf(replaceRegexpAll(toString(island), '^[[:space:]]+|[[:space:]]+$', ''), ''))  AS island_norm,
+
+        -- FIX: Coalesce to empty string to match dim_geography logic
+        coalesce(lowerUTF8(nullIf(replaceRegexpAll(toString(region), '^[[:space:]]+|[[:space:]]+$', ''), '')), '')  AS region_norm,
+        coalesce(lowerUTF8(nullIf(replaceRegexpAll(toString(island), '^[[:space:]]+|[[:space:]]+$', ''), '')), '')  AS island_norm,
 
         -- metrics
         toUInt32(coalesce(rooms_cnt, 0))     AS rooms_cnt,

@@ -38,6 +38,7 @@ def gold_dag():
             "set -euo pipefail; "
             "export PATH=\"$PATH:/home/airflow/.local/bin\"; "
             "cd /opt/airflow/dbt; "
+            "dbt deps; "
             "dbt build --select path:models/gold"
         ),
         env={
@@ -54,6 +55,7 @@ def gold_dag():
             "set -euo pipefail; "
             "export PATH=\"$PATH:/home/airflow/.local/bin\"; "
             "cd /opt/airflow/dbt; "
+            "dbt deps; "
             "dbt test --select path:models/gold"
         ),
         env={

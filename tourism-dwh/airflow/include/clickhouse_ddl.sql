@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS default_bronze;
+CREATE DATABASE IF NOT EXISTS bronze;
 
-CREATE TABLE IF NOT EXISTS default_bronze.housing_raw
+CREATE TABLE IF NOT EXISTS bronze.housing_raw
 (
     period_date   Date,
     source_url    String,

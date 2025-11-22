@@ -8,7 +8,6 @@ WITH src AS (
   FROM {{ source('bronze','housing_raw') }}
 ),
 
--- Try several header variants; tolerate quoted/raw and Excel ".0"
 reg_code_raw AS (
   SELECT
     period_date,
@@ -81,10 +80,18 @@ SELECT
   nullIf(JSONExtractString(raw_json_sane, 'instagram'), '')              AS instagram,
   nullIf(JSONExtractString(raw_json_sane, 'tiktok'), '')                 AS tiktok,
 
-  /* === Time alignment (Approach #3: shift back one month) === */
+  /* === Time alignment Fixed === */
   toStartOfMonth(period_date) AS observed_month,
+
+  -- SHIFT LOGIC: We assume tax data lags behind housing.
+  -- We shift the reference month back to ensure we catch the closed tax quarter.
   addMonths(toStartOfMonth(period_date), -1) AS reference_month,
-  toStartOfQuarter(reference_month) AS reporting_quarter_start,
+
+  -- If we are in Oct/Nov (Q4), available tax is likely Q3.
+  -- We shift back an EXTRA 3 months temporarily to align "Current Housing" with "Last Closed Tax Quarter".
+  -- Remove the 'addMonths(..., -3)' wrapper when data streams are fully live and synchronized.
+  toStartOfQuarter(addMonths(reference_month, -3)) AS reporting_quarter_start,
+
   toUInt32(toYear(reporting_quarter_start) * 10 + toQuarter(reporting_quarter_start)) AS reporting_quarter_sk
 FROM reg_code_raw
 WHERE (JSONExtractString(raw_json_sane, 'Turismiobjekti nimi') != '')
