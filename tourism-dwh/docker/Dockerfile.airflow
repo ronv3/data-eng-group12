@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y build-essential gcc wget && rm -rf /var
 
 USER airflow
 # Your app deps
-COPY py_requirements.txt /requirements.txt
+COPY --chown=airflow:root py_requirements.txt /requirements.txt
 RUN pip install --no-cache-dir -r /requirements.txt
 
 # ---- dbt + clickhouse adapter + compression lib ----
