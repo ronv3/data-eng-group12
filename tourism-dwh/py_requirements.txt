@@ -3,3 +3,7 @@ openpyxl==3.1.*
 requests==2.*
 beautifulsoup4==4.*
 tqdm==4.*
+pyarrow==15.0.*
+pyiceberg[s3fs,pyarrow]==0.6.1
+fsspec==2023.12.2
+s3fs==2023.12.2
