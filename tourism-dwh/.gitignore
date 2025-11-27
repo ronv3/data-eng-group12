@@ -29,6 +29,7 @@ airflow/logs/
 airflow/dags/__pycache__/
 airflow/plugins/__pycache__/
 pgdata_airflow/
+pgdata/*
 
 # --- Project runtime logs ---
 logs/
@@ -57,3 +58,6 @@ ckdata/
 .pytest_cache/
 .mypy_cache/
 .ipynb_checkpoints/
+
+#downloads
+data/*

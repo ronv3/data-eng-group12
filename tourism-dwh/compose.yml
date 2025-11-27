@@ -145,7 +145,102 @@ services:
     restart: always
 
 
+  clickhouse-server-omd:
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-server-omd
+    environment:
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: admin_password
+    ports:
+      - "8124:8123"
+      - "9001:9000"
+    volumes:
+      - clickhouse-omd-data:/var/lib/clickhouse/
+      - ./sql:/sql
+      - ./sample_data:/var/lib/clickhouse/user_files
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
 
+
+  mysql:
+    container_name: openmetadata_mysql
+    image: docker.getcollate.io/openmetadata/db:1.10.7
+    command: "--sort_buffer_size=10M"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: openmetadata_db
+      MYSQL_USER: openmetadata_user
+      MYSQL_PASSWORD: openmetadata_password
+    expose:
+      - 3306
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./pgdata_mysql:/var/lib/mysql
+    healthcheck:
+      test: mysql --user=root --password=$$MYSQL_ROOT_PASSWORD --silent --execute "use openmetadata_db"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+
+  elasticsearch:
+    container_name: openmetadata_elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    healthcheck:
+      test: "curl -s http://localhost:9200/_cluster/health?pretty | grep status | grep -qE 'green|yellow' || exit 1"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+
+  openmetadata-server:
+    container_name: openmetadata_server
+    restart: always
+    image: docker.getcollate.io/openmetadata/server:1.10.7
+    environment:
+      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
+      DB_SCHEME: mysql
+      DB_USER: openmetadata_user
+      DB_USER_PASSWORD: openmetadata_password
+      DB_HOST: mysql
+      DB_PORT: 3306
+      OM_DATABASE: openmetadata_db
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      ELASTICSEARCH_SCHEME: http
+      SEARCH_TYPE: elasticsearch
+    expose:
+      - 8585
+      - 8586
+    ports:
+      - "8585:8585"
+      - "8586:8586"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8586/healthcheck" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
 
 volumes:
   clickhouse_data: {}
+  clickhouse-omd-data: {}
+  es-data: {}
