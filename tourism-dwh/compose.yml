@@ -243,7 +243,7 @@ services:
       CLICKHOUSE_PASSWORD: admin_password
     ports:
       - "8124:8123"
-      - "9001:9000"
+      - "9006:9007"
     volumes:
       - clickhouse-omd-data:/var/lib/clickhouse/
       - ./sql:/sql
@@ -282,7 +282,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - xpack.security.enabled=false
     ports:
       - "9200:9200"

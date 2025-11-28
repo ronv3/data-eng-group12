@@ -61,3 +61,4 @@ ckdata/
 
 #downloads
 data/*
+/pgdata_mysql/
