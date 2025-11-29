@@ -237,26 +237,6 @@ services:
     restart: always
 
 
-  clickhouse-server-omd:
-    image: clickhouse/clickhouse-server
-    container_name: clickhouse-server-omd
-    environment:
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-      CLICKHOUSE_USER: admin
-      CLICKHOUSE_PASSWORD: admin_password
-    ports:
-      - "8124:8125"
-      - "9006:9007"
-    volumes:
-      - clickhouse-omd-data:/var/lib/clickhouse/
-      - ./sql:/sql
-      - ./sample_data:/var/lib/clickhouse/user_files
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-
   mysql:
     container_name: openmetadata_mysql
     image: docker.getcollate.io/openmetadata/db:1.10.7
@@ -334,6 +314,8 @@ services:
         condition: service_healthy
       execute-migrate-all:
         condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8586/healthcheck" ]
       interval: 15s
@@ -515,10 +497,11 @@ services:
         condition: service_healthy
       mysql:
         condition: service_healthy
+      clickhouse:
+        condition: service_healthy
 
 volumes:
   clickhouse_data: {}
-  clickhouse-omd-data: {}
   es-data: {}
   iceberg_warehouse: {}
   minio_data: {}
