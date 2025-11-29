@@ -16,7 +16,6 @@ services:
     volumes:
       - airflow_db_data:/var/lib/postgresql/data
 
-
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
     container_name: clickhouse
@@ -28,9 +27,9 @@ services:
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     ports:
       - "8123:8123"     # HTTP interface
-      # removed: - "9000:9000"  (conflicted with MinIO API on host 9000)
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse/roles_omd.sql:/docker-entrypoint-initdb.d/roles_omd.sql
       - iceberg_warehouse:/warehouse/iceberg
     healthcheck:
       test: [ "CMD-SHELL", "clickhouse-client --host 127.0.0.1 --query 'SELECT 1' >/dev/null 2>&1" ]
@@ -236,7 +235,6 @@ services:
         condition: service_started
     restart: always
 
-
   mysql:
     container_name: openmetadata_mysql
     image: docker.getcollate.io/openmetadata/db:1.10.7
@@ -259,7 +257,6 @@ services:
       timeout: 10s
       retries: 10
 
-
   elasticsearch:
     container_name: openmetadata_elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
@@ -278,7 +275,6 @@ services:
       retries: 10
     volumes:
       - es-data:/usr/share/elasticsearch/data
-
 
   openmetadata-server:
     container_name: openmetadata_server
