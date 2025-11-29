@@ -496,6 +496,26 @@ services:
       clickhouse:
         condition: service_healthy
 
+  create_clickhouse_connection:
+    image: python:3.9-slim
+    container_name: create_clickhouse_connection
+    volumes:
+      - ./:/app
+    working_dir: /app/scripts
+    command: bash -c "pip install -r /app/py_requirements.txt && python create_clickhouse_connection.py"
+    environment:
+      - OPENMETADATA_HOST=http://localhost:8585
+      - CLICKHOUSE_HOST=clickhouse:8123
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_DATABASE=default
+    depends_on:
+      openmetadata-server:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+
+
 volumes:
   clickhouse_data: {}
   es-data: {}
