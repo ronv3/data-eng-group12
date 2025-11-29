@@ -306,9 +306,6 @@ services:
     image: docker.getcollate.io/openmetadata/server:1.10.7
     platform: linux/amd64
     environment:
-      AIRFLOW_HOST: http://airflow-webserver:8080
-      AIRFLOW_API_ENDPOINT: http://airflow-webserver:8080
-      AIRFLOW_URL: http://airflow-webserver:8080
       ADMIN_EMAIL: ${OMD_ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${OMD_ADMIN_PASSWORD:-}
       DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
@@ -322,6 +319,8 @@ services:
       ELASTICSEARCH_PORT: 9200
       ELASTICSEARCH_SCHEME: http
       SEARCH_TYPE: elasticsearch
+      AIRFLOW_API_ENDPOINT: http://airflow-webserver:8080
+      ENABLE_INGESTION: "true"
     expose:
       - 8585
       - 8586
