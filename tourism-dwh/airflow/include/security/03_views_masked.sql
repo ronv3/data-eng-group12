@@ -1,4 +1,4 @@
--- A tiny "published" db that only holds masked tables for limited users
+-- A tiny "published" db that only holds masked tables for limited users.sql
 CREATE DATABASE IF NOT EXISTS default_gold_pub;
 
 -- Rebuild masked table idempotently

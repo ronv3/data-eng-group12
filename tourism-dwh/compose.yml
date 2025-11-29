@@ -15,6 +15,7 @@ services:
       start_period: 30s
     volumes:
       - airflow_db_data:/var/lib/postgresql/data
+      - ./airflow/users.sql:/docker-entrypoint-initdb.d/users.sql
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
@@ -496,25 +497,37 @@ services:
       clickhouse:
         condition: service_healthy
 
-  create_clickhouse_connection:
-    image: python:3.9-slim
-    container_name: create_clickhouse_connection
-    volumes:
-      - ./:/app
-    working_dir: /app/scripts
-    command: bash -c "pip install -r /app/py_requirements.txt && python create_clickhouse_connection.py"
-    environment:
-      - OPENMETADATA_HOST=http://localhost:8585
-      - CLICKHOUSE_HOST=clickhouse:8123
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
-      - CLICKHOUSE_DATABASE=default
+  ingestion:
+    container_name: openmetadata_ingestion
+    image: docker.getcollate.io/openmetadata/ingestion:1.10.7
     depends_on:
+      elasticsearch:
+        condition: service_started
+      mysql:
+        condition: service_healthy
       openmetadata-server:
-        condition: service_healthy
-      clickhouse:
-        condition: service_healthy
-
+        condition: service_started
+    environment:
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS: "/opt/airflow/dag_generated_configs"
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_SCHEME: mysql+mysqldb
+      DB_USER: service_openmetadata
+      DB_PASSWORD: omd_very_secret_password
+      DB_NAME: openmetadata_db
+    entrypoint: /bin/bash
+    command:
+      - "/opt/airflow/ingestion_dependency.sh"
+    expose:
+      - 8081
+    ports:
+      - "8081:8080"
+    volumes:
+      - ingestion-volume-dag-airflow:/opt/airflow/dag_generated_configs
+      - ingestion-volume-dags:/opt/airflow/dags
+      - ingestion-volume-tmp:/tmp
 
 volumes:
   clickhouse_data: {}
@@ -522,4 +535,7 @@ volumes:
   iceberg_warehouse: {}
   minio_data: {}
   airflow_db_data: {}
+  ingestion-volume-dag-airflow: {}
+  ingestion-volume-dags: {}
+  ingestion-volume-tmp: {}
 
