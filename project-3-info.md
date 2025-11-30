@@ -85,7 +85,18 @@ Limited analyst query results:
 ![](screenshots/limited_analyst.png "Limited analyst query results")
 * Limited analyst has no access to our internal dim view.
 
+## Openmetadata 
+Most recent progress can be found on branch omd-2, as there were some issues unsolved regarding Openmetadata and Clickhouse migration as well as data ingestion. Took 30+ hours for Tarvet Kullmann and 20+ hours for Ron-Aaron Vahtra. Unfortunately with no successful complete results, therefore code is not integrated to main branch. 
+
+As some of the requirements got fulfilled, please review [this branch](https://github.com/ronv3/data-eng-group12/blob/omd_2/tourism-dwh) for progress and results.
 
 ## Superset BI Dashboard
 Guide for run:
 * After running all Airflow DAGs, run this again (this populates based on gold views)
+* May have problems because of mismatching credentials to clickhouse database, with which the Superset Dashboard was created with.
+  * Instead, rely on images below and code analysis (sorry, not much to do!)
+
+![](screenshots/superset_BI_1.png "Superset BI 1")
+![](screenshots/superset_BI_2.png "Superset BI 2")
+* Views based on Gold tables, configurable by filter (seen on the left)
+

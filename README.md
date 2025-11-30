@@ -14,6 +14,9 @@
   - [4) Regional turnover per bed](#q4-regional-turnover-per-bed)
   - [5) Employees per 100 beds](#q5-employees-per-100-beds)
 - [Licensing / Sources](#licensing)
+
+#### NB! If you are looking for Project 3 submissions, look here – [project-3-info.md](project-3-info.md).
+> If you are on Github Web, use this [link to project-3-info.md](https://github.com/ronv3/data-eng-group12/blob/main/project-3-info.md)
   
 <a id="overview"></a>
 ## Overview
