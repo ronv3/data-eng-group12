@@ -1,0 +1,6 @@
+# tourism-dwh/docker/superset/Dockerfile
+FROM apache/superset:latest
+
+# Install ClickHouse SQLAlchemy driver
+# Pin to a recent stable; bump if you need features/bugfixes
+RUN pip install --no-cache-dir "clickhouse-connect>=0.7.18"

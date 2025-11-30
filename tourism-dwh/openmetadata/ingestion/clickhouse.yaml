@@ -1,0 +1,32 @@
+source:
+  type: clickhouse
+  serviceName: clickhouse_gold
+  serviceConnection:
+    config:
+      type: Clickhouse
+      scheme: clickhouse+http
+      hostPort: clickhouse:8123
+      database: default_gold
+      username: ${CLICKHOUSE_USER:-default}
+      password: ${CLICKHOUSE_PASSWORD:-}
+  sourceConfig:
+    config:
+      type: DatabaseMetadata
+      includeTables: true
+      includeViews: true
+      tableFilterPattern:
+        includes: ["dim_*", "fact_*", "bridge_*"]
+
+sink:
+  type: metadata-rest
+  config:
+    type: MetadataRestSink
+
+workflowConfig:
+  openMetadataServerConfig:
+    hostPort: http://openmetadata-server:8585/api
+    authProvider: basic
+    securityConfig:
+      # for local lab: use default admin user in OM UI
+      username: ${OM_ADMIN_USER:-admin}
+      password: ${OM_ADMIN_PASSWORD:-admin}

@@ -16,7 +16,6 @@ services:
     volumes:
       - airflow_db_data:/var/lib/postgresql/data
 
-
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
     container_name: clickhouse
@@ -28,7 +27,6 @@ services:
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     ports:
       - "8123:8123"     # HTTP interface
-      # removed: - "9000:9000"  (conflicted with MinIO API on host 9000)
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - iceberg_warehouse:/warehouse/iceberg
@@ -156,7 +154,7 @@ services:
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold
       DBT_PROFILES_DIR: /opt/airflow/dbt
-      PYICEBERG_CATALOG__REST__S3__PATH-STYLE-ACCESS: "true"
+      PYICEBERG_CATALOG__REST__S3__PATH_STYLE_ACCESS: "true"
       # PyIceberg env
       ICEBERG_CATALOG_URI: ${ICEBERG_CATALOG_URI:-http://iceberg_rest:8181/}
       PYICEBERG_CATALOG__REST__URI: ${ICEBERG_CATALOG_URI:-http://iceberg_rest:8181/}
@@ -207,8 +205,7 @@ services:
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold
       DBT_PROFILES_DIR: /opt/airflow/dbt
-      PYICEBERG_CATALOG__REST__S3__PATH-STYLE-ACCESS: "true"
-
+      PYICEBERG_CATALOG__REST__S3__PATH_STYLE_ACCESS: "true"
       # PyIceberg env
       ICEBERG_CATALOG_URI: ${ICEBERG_CATALOG_URI:-http://iceberg_rest:8181/}
       PYICEBERG_CATALOG__REST__URI: ${ICEBERG_CATALOG_URI:-http://iceberg_rest:8181/}
@@ -236,107 +233,191 @@ services:
         condition: service_started
     restart: always
 
-
-  clickhouse-server-omd:
-    image: clickhouse/clickhouse-server
-    container_name: clickhouse-server-omd
+    # -------------------- OpenMetadata stack (profile: omd) --------------------
+  openmetadata-mysql:
+    profiles: [ "omd" ]
+    image: docker.getcollate.io/openmetadata/db:1.10.9   # match your server:1.10.9
+    container_name: openmetadata-mysql
     environment:
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
-      CLICKHOUSE_USER: admin
-      CLICKHOUSE_PASSWORD: admin_password
-    ports:
-      - "8124:8123"
-      - "9006:9007"
+      MYSQL_ROOT_PASSWORD: ${OM_MYSQL_ROOT_PASSWORD:-om_root}
+      MYSQL_USER: ${OM_DB_USER:-openmetadata}
+      MYSQL_PASSWORD: ${OM_DB_PASSWORD:-openmetadata}
+      MYSQL_DATABASE: ${OM_DB_NAME:-openmetadata_db}
     volumes:
-      - clickhouse-omd-data:/var/lib/clickhouse/
-      - ./sql:/sql
-      - ./sample_data:/var/lib/clickhouse/user_files
-    ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
-
-
-  mysql:
-    container_name: openmetadata_mysql
-    image: docker.getcollate.io/openmetadata/db:1.10.7
-    command: "--sort_buffer_size=10M"
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: openmetadata_db
-      MYSQL_USER: openmetadata_user
-      MYSQL_PASSWORD: openmetadata_password
-    expose:
-      - 3306
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./pgdata_mysql:/var/lib/mysql
+      - om_mysql_data:/var/lib/mysql
     healthcheck:
-      test: mysql --user=root --password=$$MYSQL_ROOT_PASSWORD --silent --execute "use openmetadata_db"
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      test: [ "CMD-SHELL", "mysqladmin ping -u root -p$${MYSQL_ROOT_PASSWORD} --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
 
-
-  elasticsearch:
-    container_name: openmetadata_elasticsearch
+  openmetadata-elasticsearch:
+    profiles: ["omd"]
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
+    container_name: openmetadata-elasticsearch
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    healthcheck:
-      test: "curl -s http://localhost:9200/_cluster/health?pretty | grep status | grep -qE 'green|yellow' || exit 1"
-      interval: 15s
-      timeout: 10s
-      retries: 10
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ingest.geoip.downloader.enabled=false
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     volumes:
-      - es-data:/usr/share/elasticsearch/data
+      - om_es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    ports:
+      - "9200:9200"   # optional for local debugging
+    restart: unless-stopped
+
+  # One-shot DB migration for OpenMetadata
+  openmetadata-migrations:
+    profiles: [ "omd" ]
+    image: openmetadata/server:1.10.9
+    container_name: openmetadata-migrations
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+    environment:
+      DB_HOST: openmetadata-mysql
+      DB_PORT: 3306
+      DB_SCHEME: mysql
+      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
+      DB_PARAMS: allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      DB_USER: ${OM_DB_USER:-openmetadata}
+      DB_USER_PASSWORD: ${OM_DB_PASSWORD:-openmetadata}
+      OM_DATABASE: ${OM_DB_NAME:-openmetadata_db}
+    volumes:
+      - ./openmetadata/config/openmetadata.yaml:/openmetadata/conf/openmetadata.yaml:ro
+    entrypoint: [ "/bin/bash", "-lc" ]
+    command: >
+      ./bootstrap/openmetadata-ops.sh migrate
+      --openmetadata-config /openmetadata/conf/openmetadata.yaml
+    restart: "no"
+
 
 
   openmetadata-server:
-    container_name: openmetadata_server
-    restart: always
-    image: docker.getcollate.io/openmetadata/server:1.10.7
+    profiles: [ "omd" ]
+    image: openmetadata/server:1.10.9
+    container_name: openmetadata-server
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+      openmetadata-elasticsearch:
+        condition: service_healthy
+      openmetadata-migrations:
+        condition: service_completed_successfully
     environment:
-      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
-      DB_SCHEME: mysql
-      DB_USER: openmetadata_user
-      DB_USER_PASSWORD: openmetadata_password
-      DB_HOST: mysql
+      ELASTICSEARCH_HOSTS: http://openmetadata-elasticsearch:9200
+      SERVER_PORT: 8585
+      DB_HOST: openmetadata-mysql
       DB_PORT: 3306
-      OM_DATABASE: openmetadata_db
-      ELASTICSEARCH_HOST: elasticsearch
-      ELASTICSEARCH_PORT: 9200
-      ELASTICSEARCH_SCHEME: http
-      SEARCH_TYPE: elasticsearch
-    expose:
-      - 8585
-      - 8586
+      DB_SCHEME: mysql
+      DB_DRIVER_CLASS: com.mysql.cj.jdbc.Driver
+      DB_PARAMS: allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      DB_USER: ${OM_DB_USER:-openmetadata}
+      DB_USER_PASSWORD: ${OM_DB_PASSWORD:-openmetadata}
+      OM_DATABASE: ${OM_DB_NAME:-openmetadata_db}
+    volumes:
+      - ./openmetadata/config/openmetadata.yaml:/openmetadata/conf/openmetadata.yaml:ro
     ports:
       - "8585:8585"
-      - "8586:8586"
+    restart: unless-stopped
+
+
+  # -------------------- Superset (profile: omd) --------------------
+  superset:
+    profiles: ["omd"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.superset
+    image: tourism-superset:latest
+    container_name: superset
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-supersetadmin}
+      SUPERSET_ENV: production
+      FLASK_ENV: production
+      SUPERSET_LOAD_EXAMPLES: "no"
+      SUPERSET_PORT: 8088
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@superset.local}
+    ports:
+      - "8088:8088"
+    volumes:
+      - superset_home:/app/superset_home
     depends_on:
-      mysql:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+      - clickhouse
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8586/healthcheck" ]
-      interval: 15s
-      timeout: 10s
-      retries: 5
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8088/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  superset-init:
+    profiles: ["omd"]
+    image: tourism-superset:latest
+    container_name: superset-init
+    depends_on:
+      superset:
+        condition: service_started
+    entrypoint: /bin/bash
+    command: >
+      -lc "
+      superset db upgrade &&
+      superset fab create-admin
+        --username ${SUPERSET_ADMIN_USERNAME:-admin}
+        --firstname Admin --lastname User
+        --email ${SUPERSET_ADMIN_EMAIL:-admin@superset.local}
+        --password ${SUPERSET_ADMIN_PASSWORD:-admin} || true &&
+      superset init"
+    restart: "no"
+
+  # -------------------- One-shot OM ingestion helpers (profile: omd) --------------------
+  om-ingest-clickhouse:
+    profiles: ["omd"]
+    image: openmetadata/ingestion:1.10.9
+    container_name: om-ingest-clickhouse
+    entrypoint: [ "bash", "-lc" ]
+    command: "metadata ingest -c /ingestion/clickhouse.yaml"
+    volumes:
+      - ./openmetadata/ingestion:/ingestion
+    depends_on:
+      openmetadata-server:
+        condition: service_healthy
+    restart: "no"
+
+  om-ingest-superset:
+    profiles: ["omd"]
+    image: openmetadata/ingestion:1.10.9
+    container_name: om-ingest-superset
+    entrypoint: [ "bash", "-lc" ]
+    command: "metadata ingest -c /ingestion/superset.yaml"
+    volumes:
+      - ./openmetadata/ingestion:/ingestion
+    depends_on:
+      openmetadata-server:
+        condition: service_healthy
+      superset:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   clickhouse_data: {}
-  clickhouse-omd-data: {}
-  es-data: {}
   iceberg_warehouse: {}
   minio_data: {}
   airflow_db_data: {}
-
+  om_mysql_data: {}
+  om_es_data: {}
+  superset_home: {}

@@ -1,0 +1,12 @@
+serverConfiguration:
+  http:
+    port: 8585
+
+authenticationConfiguration:
+  provider: basic
+
+database:
+  driverClass: com.mysql.cj.jdbc.Driver
+  url: jdbc:mysql://openmetadata-mysql:3306/openmetadata_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+  username: ${OM_DB_USER:-openmetadata}
+  password: ${OM_DB_PASSWORD:-openmetadata}

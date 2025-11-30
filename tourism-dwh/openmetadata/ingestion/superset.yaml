@@ -1,0 +1,26 @@
+source:
+  type: superset
+  serviceName: superset_local
+  serviceConnection:
+    config:
+      type: Superset
+      hostPort: http://superset:8088
+      username: ${SUPERSET_ADMIN_USERNAME:-admin}
+      password: ${SUPERSET_ADMIN_PASSWORD:-admin}
+  sourceConfig:
+    config:
+      type: DashboardMetadata
+      includeOwners: true
+
+sink:
+  type: metadata-rest
+  config:
+    type: MetadataRestSink
+
+workflowConfig:
+  openMetadataServerConfig:
+    hostPort: http://openmetadata-server:8585/api
+    authProvider: basic
+    securityConfig:
+      username: ${OM_ADMIN_USER:-admin}
+      password: ${OM_ADMIN_PASSWORD:-admin}
