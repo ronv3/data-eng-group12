@@ -48,6 +48,8 @@ docker compose up -d
 * Postgres: localhost:5432 (DB: assignment)
 * Airflow: http://localhost:8080
  login with .env creds for Airflow, default credentials – Username: `admin`; Password: `admin`.
+* Superset: http://localhost:8088/
+  login with .env creds for Airflow, default credentials – Username: `admin`; Password: `admin`.
 
 >Access ClickHouse database inside terminal with:
 > ```docker exec -it clickhouse clickhouse-client```
