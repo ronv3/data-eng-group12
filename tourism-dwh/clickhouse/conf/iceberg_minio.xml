@@ -1,0 +1,25 @@
+<clickhouse>
+  <named_collections>
+    <!--
+      Named collection for IcebergS3 / icebergS3 access.
+
+      Values:
+        url  -> base URL of the warehouse bucket in MinIO
+        access_key_id / secret_access_key -> pulled from env vars
+
+      This file never contains the actual secrets, only env var names.
+    -->
+    <iceberg_minio>
+      <!-- Base URL of the Iceberg warehouse in MinIO -->
+      <url>http://minio:9000/tourism-warehouse/</url>
+
+      <!-- Credentials come from environment variables inside the container -->
+      <access_key_id     from_env="S3_ACCESS_KEY_ID" />
+      <secret_access_key from_env="S3_SECRET_ACCESS_KEY" />
+
+      <!-- Let ClickHouse infer data format & structure from Iceberg metadata -->
+      <format>auto</format>
+      <structure>auto</structure>
+    </iceberg_minio>
+  </named_collections>
+</clickhouse>

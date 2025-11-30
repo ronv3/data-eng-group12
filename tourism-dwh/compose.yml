@@ -22,22 +22,58 @@ services:
     container_name: clickhouse
     environment:
       - CLICKHOUSE_DB=default
-      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
-      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-admin}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-admin_password}
       - TZ=${TZ:-UTC}
       - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+
+      # S3 / Iceberg credentials passed via env (used by named collection)
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-minioadmin}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-minioadmin}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_BUCKET=${S3_BUCKET:-tourism-warehouse}
+
     ports:
-      - "8123:8123"     # HTTP interface
-      # removed: - "9000:9000"  (conflicted with MinIO API on host 9000)
+      - "8123:8123"
+      # if you had other ports defined for ClickHouse (e.g. 9009, 9440), keep them here
+
     volumes:
       - clickhouse_data:/var/lib/clickhouse
-      - iceberg_warehouse:/warehouse/iceberg
+      # your existing volumes (if any) stay here
+
+      # Mount the Iceberg named-collection config into ClickHouse config.d
+      - ./clickhouse/conf/iceberg_minio.xml:/etc/clickhouse-server/config.d/iceberg_minio.xml:ro
+
     healthcheck:
       test: [ "CMD-SHELL", "clickhouse-client --host 127.0.0.1 --query 'SELECT 1' >/dev/null 2>&1" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  # -------- Superset service --------
+  superset:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.superset
+    image: tourism-superset:3.1.1
+    container_name: superset
+    ports:
+      - "8088:8088"
+    environment:
+      # All secrets come from .env, nothing hard-coded
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-FAST_SECRET_123}
+      SUPERSET_HOME: /app/superset_home
+    volumes:
+      # You already copied superset.db etc. into ./superset
+      # This keeps your dashboards and database connections
+      - ./superset:/app/superset_home
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+
+
+
 
   # -------- Iceberg stack --------
   minio:
@@ -150,8 +186,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-admin}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin_password}
       CLICKHOUSE_DB_BRONZE: bronze
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold
@@ -201,8 +237,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-airflow}:${POSTGRES_PASSWORD:-airflow}@airflow-db:5432/${POSTGRES_DB:-airflow}
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
-      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-admin}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-admin_password}
       CLICKHOUSE_DB_BRONZE: bronze
       CLICKHOUSE_DB_SILVER: silver
       CLICKHOUSE_DB_GOLD: gold

@@ -39,7 +39,7 @@ docker compose up -d
 ### For first run
 
 * Run DAGs in Airflow in the right order
-  * tax_quarterly_dag → housing_monthly_dag → silver_dag → gold_dag
+  * tax_quarterly_dag → iceberg_tax_bronze_dag → housing_monthly_dag → silver_dag → gold_dag
 
 > Note: After triggering tax_quarterly_dag or housing_monthly_dag, silver and gold level DAGs are automatically queued.
 
