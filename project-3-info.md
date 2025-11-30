@@ -85,6 +85,7 @@ Limited analyst query results:
 Most recent progress can be found on branch omd-2, as there were some issues unsolved regarding Openmetadata and Clickhouse migration as well as data ingestion. Took 30+ hours for Tarvet Kullmann and 20+ hours for Ron-Aaron Vahtra. Unfortunately with no successful complete results, therefore code is not integrated to main branch. 
 
 As some of the requirements got fulfilled, please review [this branch](https://github.com/ronv3/data-eng-group12/blob/omd_2/tourism-dwh) for progress and results.
+* Registering of ClickHouse gold tables should be implemented
 
 ## Superset BI Dashboard
 Guide for run:
