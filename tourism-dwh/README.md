@@ -50,10 +50,9 @@ docker compose up -d
  login with .env creds for Airflow, default credentials – Username: `admin`; Password: `admin`.
 * Superset: http://localhost:8088/
   login with .env creds for Airflow, default credentials – Username: `admin`; Password: `admin`.
-
->Access ClickHouse database inside terminal with:
-> ```docker exec -it clickhouse clickhouse-client```
->> Optionally you can setup DB on your IDE for more user-friendly queries
+* Access ClickHouse database inside terminal with:
+ > ```docker exec -it clickhouse clickhouse-client```
+ >> Optionally you can setup DB on your IDE for more user-friendly queries
 
 ### For first run
 
