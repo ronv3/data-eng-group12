@@ -10,15 +10,32 @@ Create `.env` with the teplate of .env_template. Example credentials (feel free 
 POSTGRES_USER=airflow
 POSTGRES_PASSWORD=airflow
 POSTGRES_DB=airflow
-
 AIRFLOW_USER=admin
 AIRFLOW_PASSWORD=admin
 
-CLICKHOUSE_USER=default
-CLICKHOUSE_PASSWORD=default
+CLICKHOUSE_USER=admin
+CLICKHOUSE_PASSWORD=admin_password
 CLICKHOUSE_DB_BRONZE=bronze
 CLICKHOUSE_DB_SILVER=silver
 TZ=UTC
+
+S3_BUCKET=tourism-warehouse
+S3_REGION=us-east-1
+S3_ACCESS_KEY_ID=minioadmin
+S3_SECRET_ACCESS_KEY=minioadmin
+
+ICEBERG_CATALOG_URI=http://iceberg_rest:8181/
+ICEBERG_WAREHOUSE=s3://tourism-warehouse/
+
+OM_MYSQL_ROOT_PASSWORD=om_root
+OM_DB_USER=openmetadata
+OM_DB_PASSWORD=openmetadata
+OM_DB_NAME=openmetadata_db
+
+SUPERSET_ADMIN_USERNAME=admin
+SUPERSET_ADMIN_PASSWORD=admin
+SUPERSET_ADMIN_EMAIL=admin@superset.local
+SUPERSET_SECRET_KEY=FAST_SECRET_123
 ```
 
 ## 3) Start
