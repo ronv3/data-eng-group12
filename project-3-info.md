@@ -1,12 +1,8 @@
 # First run
-```
-docker compose build
-docker compose up -d
+Refer to this [README.md](tourism-dwh/README.md) setup.
+> If you are on Github Web, use this [link to README.md](https://github.com/ronv3/data-eng-group12/blob/main/tourism-dwh/README.md)
 
-> Now run all Airflow DAGs in order:
-tax_quarterly_dag → iceberg_tax_bronze_dag → housing_monthly_dag → silver_dag → gold_dag
-```
-> Note: Delete all old build, images, volumes just in case there are corrupted existing Docker files
+> Note: If you have previously run this project's build: REMOVE all old build, images, volumes just in case there are corrupting existing Docker files
 
 
 ## Apache Iceberg
