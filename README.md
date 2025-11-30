@@ -190,7 +190,29 @@ This is the **analytics layer** built from Silver staging via dbt. Dimensions ar
 ![](screenshots/gold_dag.png "Gold layer DAG")
 
 ---
+<a id="openmetadata"></a>
+## OpenMetadata Documentation
 
+**OpenMetadata** is used in this project for metadata management and data governance. Below are the key configurations and usage details:
+### Key Configurations
+- **Elasticsearch**: Used for indexing and searching metadata.
+- **Airflow**: Integrated for orchestrating ingestion workflows.
+
+### How to Access OpenMetadata
+1. Open the OpenMetadata UI at `http://localhost:8585` (default port).
+2. Login with the default credentials:
+  - **Username**: `admin@open-metadata.org`
+  - **Password**: `admin`
+
+### OpenMetadata Setup
+Ensure the following services are running:
+- `openmetadata-server`
+- `elasticsearch`
+- `mysql`
+- `clickhouse`
+
+
+---
 <a id="example-queries"></a>
 ## Queries to business questions with results from Database
 

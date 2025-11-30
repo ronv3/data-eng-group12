@@ -15,7 +15,6 @@ services:
       start_period: 30s
     volumes:
       - airflow_db_data:/var/lib/postgresql/data
-      - ./airflow/users.sql:/docker-entrypoint-initdb.d/users.sql
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
@@ -263,9 +262,13 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms2g -Xmx2g
+      - ES_JAVA_OPTS=-Xms4g -Xmx4g
       - xpack.security.enabled=false
-    mem_limit: 4g
+    mem_limit: 8g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -508,15 +511,15 @@ services:
       openmetadata-server:
         condition: service_started
     environment:
+      DB_HOST: airflow-db-tourism
+      DB_PORT: 5432
+      DB_SCHEME: postgresql+psycopg2
+      DB_USER: airflow
+      DB_PASSWORD: airflow
+      DB_NAME: gold
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS: "/opt/airflow/dag_generated_configs"
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_SCHEME: mysql+mysqldb
-      DB_USER: service_openmetadata
-      DB_PASSWORD: omd_very_secret_password
-      DB_NAME: openmetadata_db
     entrypoint: /bin/bash
     command:
       - "/opt/airflow/ingestion_dependency.sh"
